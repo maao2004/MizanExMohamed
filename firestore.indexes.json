@@ -1,0 +1,29 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "parameters",
+      "fieldPath": "serverUpdatedAt",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "daily_trading_records",
+      "fieldPath": "rawCells",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "daily_trading_schemas",
+      "fieldPath": "columns",
+      "indexes": []
+    }
+  ]
+}

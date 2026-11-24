@@ -1,0 +1,3810 @@
+diff --git a/old/.env.example b/new/.env.example
+index d2a42f9..bd42ec5 100644
+--- a/old/.env.example
++++ b/new/.env.example
+@@ -1,4 +1,4 @@
+-# GEMINI_API_KEY: Required for Gemini AI API calls.
++# Optional future server-side AI integration; not used by the current application.
+ # AI Studio automatically injects this at runtime from user secrets.
+ # Users configure this via the Secrets panel in the AI Studio UI.
+ GEMINI_API_KEY="MY_GEMINI_API_KEY"
+@@ -19,4 +19,4 @@ VITE_FIREBASE_MEASUREMENT_ID="FIREBASE_MEASUREMENT_ID"
+ 
+ # Firebase Database ID configuration
+ # Use "(default)" for the default Firestore database if needed.
+-VITE_FIREBASE_DATABASE_ID="DATABASE_ID"
+\ No newline at end of file
++VITE_FIREBASE_DATABASE_ID="(default)"
+\ No newline at end of file
+diff --git a/old/README.md b/new/README.md
+index 1f144a1..f788ab6 100644
+--- a/old/README.md
++++ b/new/README.md
+@@ -1,20 +1,49 @@
+-<div align="center">
+-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+-</div>
++# ميزان — نسخة مراجعة وإصلاح
+ 
+-# Run and deploy your AI Studio app
++ابدأ بقراءة `docs/Mizan_Review_Report.html`، وخاصة قيود هذه النسخة وخطة ترحيل أسماء المجموعات. لا ترفع هذه النسخة فوق مشروع حي دون تجربة منفصلة ونسخة احتياطية من بيانات Firestore. لم ينفذ أي نشر ضمن المراجعة.
+ 
+-This contains everything you need to run your app locally.
++## المتطلبات
+ 
+-View your app in AI Studio: https://ai.studio/apps/b7ca90e2-2ca5-4c44-93e2-3d13a44afd30
++Node.js 22 حديث متوافق مع Vite، وnpm، وأداة Firebase CLI. اختُبرت عمليات البناء في بيئة Node.js 24.22.1؛ runtime الوظائف مضبوط على Node.js 22. لا توجد أسرار حسابات مضافة.
+ 
+-## Run Locally
++## تثبيت واختبار — PowerShell
+ 
+-**Prerequisites:**  Node.js
++```powershell
++npm ci
++npm --prefix functions ci
++npm run check
++npm run dev
++```
+ 
++`check` يشمل TypeScript و45 اختباراً للحسابات والتحقق والعرض الثابت، ثم بناء الواجهة وبناء الوظائف.
+ 
+-1. Install dependencies:
+-   `npm install`
+-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+-3. Run the app:
+-   `npm run dev`
++لاختبار قواعد Firestore محلياً (يتطلب Java 21 وأداة Firebase):
++
++```powershell
++npm run test:rules
++```
++
++الاختبار يستخدم مشروعاً تجريبياً `demo-mizan-review`، ويشمل 16 حالة صلاحيات؛ لا يتصل ببيانات الإنتاج.
++
++## إعداد Firebase
++
++انسخ `.env.example` إلى `.env.local`، واملأ متغيرات Firebase العامة لمشروع الاختبار. لا تترك القيم الوهمية كما هي. يدعم هذا التسليم قاعدة `(default)` للوظائف؛ لا تستخدم قاعدة مخصصة قبل توحيد إعدادها في الواجهة والخادم.
++
++تعريف المجموعات المعتمد موثق بالتقرير. لا توجد عملية نقل تلقائي للمجموعات القديمة. لا تمنح حساباً دوراً إدارياً بتعديل localStorage. مدير التهيئة الأصلي يتطلب بريداً متحققاً؛ ويمكن إنشاء منح `admins/{uid}` من جهة موثوقة. إدارة الاشتراكات والأدوار داخل لوحة الواجهة ليست مسار إدارة إنتاجياً بعد.
++
++## النشر بعد اختبار نسخة منفصلة
++
++```powershell
++npm run check
++firebase deploy --only firestore,functions,hosting
++```
++
++تحقق أولاً من المشروع المحدد بـ `firebase use`. الملف `.firebaserc` الأصلي محفوظ، فلا تنفذ أمر النشر دون تحديد المشروع المقصود. لا يتضمن ZIP أي `node_modules`؛ ملفات القفل مرفقة.
++
++## حدود الحسابات
++
++- TTM من FY أو YTD الحالي + FY السابق − YTD المقارن؛ لا تُعمّم الأرباع الناقصة إلى سنة.
++- FCFF يُحسب من تسوية موثقة: EBIT بعد ضريبة تقييم صريحة + الإهلاك − CapEx − زيادة رأس المال العامل التشغيلي. ROIC يبقى غير متاح دون مدخلاته.
++- DCF يستقبل FCFF وصافي الدين الفعليين الآن؛ مستبعد للشركات المالية أو نقص المدخلات أو عدم اتساق العملة. اقرأ docs/Phase_2_Financials.md للحقول الجديدة.
++- RIM لا يزال سيناريو افتراضياً مع احتجاز 50%، ويحتاج معايرة اقتصادية. السيناريوهات تعيد حساب النماذج، ولا تمثل توقعاً مؤكداً.
++- Confidence Score وICR ونظام الاشتراكات الفعلي مدرجة بخطة الاستكمال، ولم تُقدّم كميزات مكتملة.
+diff --git a/old/bun.lock b/old/bun.lock
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/old/firestore.rules b/new/firestore.rules
+index e406a4a..8fe70ac 100644
+--- a/old/firestore.rules
++++ b/new/firestore.rules
+@@ -8,26 +8,26 @@ service cloud.firestore {
+     // ==========================================
+ 
+     function isAuthenticated() {
+-      return request.auth != null;
++      return request.auth != null && (
++        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
++        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isActive', true) == true
++      );
+     }
+ 
+     // Role check via Firebase Auth custom claims or trusted database lookup
+     function hasRole(role) {
+       return isAuthenticated() && (
+-        request.auth.token.role == role ||
+-        (role == 'admin' && request.auth.token.admin == true)
++        request.auth.token.get('role', '') == role ||
++        (role == 'admin' && request.auth.token.get('admin', false) == true)
+       );
+     }
+ 
+-    // Master Admin check: custom claim, bootstrap admin email, or admins document lookup
++    // Bootstrap is restricted to a verified, explicitly listed owner email.
+     function isAdmin() {
+       return isAuthenticated() && (
+         hasRole('admin') ||
+-        (request.auth.token.email != null && (
+-          request.auth.token.email == 'maao2004@gmail.com' ||
+-          request.auth.token.email == 'admin@mizan.eg' ||
+-          request.auth.token.email.matches('.*@mizan\\.eg$')
+-        )) ||
++        (request.auth.token.get('email_verified', false) == true &&
++         request.auth.token.get('email', '') == 'maao2004@gmail.com') ||
+         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+       );
+     }
+@@ -66,61 +66,82 @@ service cloud.firestore {
+     // المشتركون والمسؤولون يمكنهم القراءة، والتعديل للمدير ومدخل البيانات فقط
+     match /companies/{companyId} {
+       allow read: if isSubscriber();
+-      allow write: if isDataEntry() && hasValidUpdatedAt();
++      allow create, update: if isDataEntry() && hasValidUpdatedAt();
++      allow delete: if isDataEntry();
+     }
+ 
+     // 2. القوائم الربع سنوية وحسابات TTM الموحدة (Financials)
+     match /financials/{financialId} {
+       allow read: if isSubscriber();
+-      allow write: if isDataEntry() && hasValidUpdatedAt();
++      allow create, update: if isDataEntry() && hasValidUpdatedAt();
++      allow delete: if isDataEntry();
+     }
+ 
+     // 3. السجلات الربع سنوية الشاملة (26 Columns Standard)
+     match /quarterly_financial_records/{recordId} {
+       allow read: if isSubscriber();
+-      allow write: if isDataEntry() && hasValidUpdatedAt();
++      allow create, update: if isDataEntry() && hasValidUpdatedAt();
++      allow delete: if isDataEntry();
+     }
+ 
+     // 4. سجل التداول اليومي لشاشة البورصة (40 Columns Standard)
+     match /daily_trading_records/{dailyId} {
+       allow read: if isSubscriber();
+-      allow write: if isDataEntry() && hasValidUpdatedAt();
++      allow create, update: if isDataEntry() && hasValidUpdatedAt();
++      allow delete: if isDataEntry();
+     }
+ 
+     // 5. فرضيات الاستثمار والخندق الاقتصادي (Investment Stories)
+     match /stories/{companyId} {
+       allow read: if isSubscriber();
+-      allow write: if isAdmin() && hasValidUpdatedAt();
++      allow create, update: if isAdmin() && hasValidUpdatedAt();
++      allow delete: if isAdmin();
+     }
+ 
+     // 6. مصفوفة القرارات الاستثمارية (Decision Matrix)
+     match /decisions/{companyId} {
+       allow read: if isSubscriber();
+-      allow write: if isAdmin() && hasValidUpdatedAt();
++      allow create, update: if isAdmin() && hasValidUpdatedAt();
++      allow delete: if isAdmin();
+     }
+ 
+     // 7. سجل الصفقات والمحفظة الاستثمارية (Trades)
+     match /trades/{tradeId} {
+       allow read: if isSubscriber();
+-      allow create, update: if isSubscriber() && hasValidUpdatedAt();
++      // The current trade log is shared; only administrators may change it.
++      allow create, update: if isAdmin() && hasValidUpdatedAt();
+       allow delete: if isAdmin();
+     }
+ 
+     // 8. المعاملات الكلية الـ 29 ومضاعفات القطاعات (Macro & Valuation Parameters)
+     match /macro_params/{paramKey} {
+       allow read: if isSubscriber();
+-      allow write: if isAdmin() && hasValidUpdatedAt();
++      allow create, update: if isAdmin() && hasValidUpdatedAt();
++      allow delete: if isAdmin();
++    }
++
++    match /sectorPE/{sectorId} {
++      allow read: if isSubscriber();
++      allow create, update: if isAdmin() && hasValidUpdatedAt();
++      allow delete: if isAdmin();
+     }
+ 
+     // 9. ملفات المستخدمين والأدوار (Users Collection)
+     // المستخدم يقرأ ويحدث ملفه الشخصي فقط، ولا يمكنه تغيير حقلي role أو tier بنفسه
+     match /users/{userId} {
+       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+-      allow create: if isAuthenticated() && request.auth.uid == userId;
++      allow create: if isAuthenticated() && request.auth.uid == userId &&
++        request.resource.data.keys().hasOnly([
++          'id', 'email', 'displayName', 'photoURL', 'role', 'tier', 'isActive',
++          'createdAt', 'lastLoginAt', 'updatedAt'
++        ]) && request.resource.data.id == userId &&
++        request.resource.data.email == request.auth.token.get('email', '') &&
++        request.resource.data.role == 'subscriber' &&
++        request.resource.data.tier == 'free' && request.resource.data.isActive == true;
+       allow update: if isAuthenticated() && (
+         isAdmin() ||
+         (request.auth.uid == userId &&
+-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tier', 'isActive']))
++         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'lastLoginAt', 'updatedAt']))
+       );
+       allow delete: if isAdmin();
+     }
+diff --git a/old/functions/package-lock.json b/new/functions/package-lock.json
+index df010b4..2de0223 100644
+--- a/old/functions/package-lock.json
++++ b/new/functions/package-lock.json
+@@ -12,8 +12,8 @@
+         "firebase-functions": "^7.4.0"
+       },
+       "devDependencies": {
+-        "@types/node": "^22.14.0",
+-        "typescript": "^5.7.2"
++        "@types/node": "^20.0.0",
++        "typescript": "^5.3.3"
+       },
+       "engines": {
+         "node": "22"
+@@ -430,9 +430,9 @@
+       "license": "MIT"
+     },
+     "node_modules/@types/node": {
+-      "version": "22.20.5",
+-      "resolved": "https://registry.npmjs.org/@types/node/-/node-22.20.5.tgz",
+-      "integrity": "sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==",
++      "version": "20.19.43",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-20.19.43.tgz",
++      "integrity": "sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==",
+       "license": "MIT",
+       "dependencies": {
+         "undici-types": "~6.21.0"
+diff --git a/old/functions/package.json b/new/functions/package.json
+index 8d9ffd2..1e12280 100644
+--- a/old/functions/package.json
++++ b/new/functions/package.json
+@@ -18,8 +18,8 @@
+     "firebase-functions": "^7.4.0"
+   },
+   "devDependencies": {
+-    "@types/node": "^22.14.0",
+-    "typescript": "^5.7.2"
++    "@types/node": "^20.0.0",
++    "typescript": "^5.3.3"
+   },
+   "private": true
+ }
+diff --git a/old/functions/src/index.ts b/new/functions/src/index.ts
+index ae2c73f..71a8ff8 100644
+--- a/old/functions/src/index.ts
++++ b/new/functions/src/index.ts
+@@ -1,300 +1,66 @@
+-/**
+- * @license
+- * SPDX-License-Identifier: Apache-2.0
+- * 
+- * Firebase Cloud Functions for Mizan Platform
+- * Enterprise Server-Side Financial Data Processing with Firebase Admin SDK
+- */
+-
+-import { setGlobalOptions } from 'firebase-functions/v2';
+-import { onCall, HttpsError, type CallableRequest } from 'firebase-functions/v2/https';
++/** Firebase financial writes: validated, authenticated, atomic per request. */
++import { onCall, HttpsError } from 'firebase-functions/v2/https';
+ import { initializeApp, getApps } from 'firebase-admin/app';
+ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+-
+-// Initialize Firebase Admin SDK singleton
+-if (!getApps().length) {
+-  initializeApp();
+-}
+-
+-// Configure global options for v2 Cloud Functions (compatible with firebase-functions v4/v5/v7+)
+-setGlobalOptions({
+-  region: process.env.FUNCTION_REGION || 'us-central1',
+-  maxInstances: 10,
+-});
+-
++import { validateRecords, financialProjection, normalizedTicker } from './records';
++if (!getApps().length) initializeApp();
+ const db = getFirestore();
+ 
+-// Trusted Bootstrap Admins
+-const ADMIN_EMAILS = ['maao2004@gmail.com', 'admin@mizan.eg'];
+-
+-interface FinancialUpdateRequest {
+-  operationType: 'quarterly_record' | 'daily_record' | 'bulk_quarterly' | 'bulk_daily' | 'macro_parameter';
+-  data: any;
+-  ticker?: string;
+-  year?: number;
+-  quarter?: string;
+-  tradeDate?: string;
+-}
+-
+-interface FinancialUpdateResponse {
+-  success: boolean;
+-  messageAr: string;
+-  operationType: FinancialUpdateRequest['operationType'];
+-  updatedAt: string;
+-  callerUid: string;
+-}
+-
+-/**
+- * Callable Cloud Function: updateFinancialData
+- * Executes authoritative, server-side financial data updates via Firebase Admin SDK.
+- * Verifies role claims (Admin / Data Entry), guarantees atomicity, and updates server timestamps (updatedAt).
+- */
+-export const updateFinancialData = onCall<FinancialUpdateRequest, Promise<FinancialUpdateResponse>>(
+-  {
+-    cors: true,
+-    timeoutSeconds: 60,
+-    memory: '256MiB',
+-  },
+-  async (request: CallableRequest<FinancialUpdateRequest>): Promise<FinancialUpdateResponse> => {
+-    // 1. Authentication Verification
+-    if (!request.auth) {
+-      throw new HttpsError(
+-        'unauthenticated',
+-        'يجب تسجيل الدخول لاستدعاء دالة تحديث البيانات المالية.'
+-      );
+-    }
+-
+-    const { uid, token } = request.auth;
+-    const userEmail = (token.email || '').toLowerCase();
+-    const tokenRole = token.role as string | undefined;
+-
+-    // 2. Authorization & RBAC Verification (Admin or Data Entry required)
+-    let isAuthorized =
+-      tokenRole === 'admin' ||
+-      tokenRole === 'data_entry' ||
+-      token.admin === true ||
+-      ADMIN_EMAILS.includes(userEmail) ||
+-      userEmail.endsWith('@mizan.eg');
+-
+-    if (!isAuthorized) {
+-      // Check user document in Firestore as fallback
+-      const userDoc = await db.collection('users').doc(uid).get();
+-      if (userDoc.exists) {
+-        const role = userDoc.data()?.role;
+-        if (role === 'admin' || role === 'data_entry') {
+-          isAuthorized = true;
++export const updateFinancialData = onCall({ region: 'us-central1', cors: true }, async request => {
++  if (!request.auth) throw new HttpsError('unauthenticated', 'يجب تسجيل الدخول.');
++  const { uid, token } = request.auth;
++  const user = await db.collection('users').doc(uid).get();
++  if (user.data()?.isActive === false) throw new HttpsError('permission-denied', 'الحساب معطل.');
++  const owner = token.email_verified === true && token.email === 'maao2004@gmail.com';
++  const admin = owner || token.admin === true || token.role === 'admin' ||
++    (await db.collection('admins').doc(uid).get()).exists;
++  const entry = admin || token.role === 'data_entry' || ['admin', 'data_entry'].includes(user.data()?.role);
++  if (!entry) throw new HttpsError('permission-denied', 'مطلوب مدير أو مدخل بيانات.');
++  const { operationType, data, ticker, year, quarter, tradeDate } = request.data || {};
++  const now = new Date().toISOString();
++  const stamp = { updatedAt: now, serverUpdatedAt: FieldValue.serverTimestamp(), updatedBy: uid };
++  const batch = db.batch();
++  let count = 0;
++  try {
++    if (['quarterly_record', 'bulk_quarterly', 'daily_record', 'bulk_daily'].includes(operationType)) {
++      const quarterly = operationType.includes('quarterly');
++      const records = validateRecords(operationType.startsWith('bulk_') ? data : [data], quarterly);
++      // Every record can produce two writes. Reject oversize requests, never truncate.
++      for (const record of records) {
++        const tk = normalizedTicker(record.ticker);
++        if (quarterly) {
++          const id = `${tk}_${record.year}_${record.quarter}`;
++          batch.set(db.collection('quarterly_financial_records').doc(id), { ...record, ticker: tk, ...stamp }, { merge: true });
++          const financial = financialProjection(record);
++          batch.set(db.collection('financials').doc(financial.id), { ...financial, ...stamp }, { merge: true });
++        } else {
++          batch.set(db.collection('daily_trading_records').doc(`${tk}_${record.tradeDate}`), { ...record, ticker: tk, ...stamp }, { merge: true });
++          // Historic daily imports must not overwrite today's market quote.
++          // Latest quote is derived from dated daily records in the client.
+         }
+       }
+-    }
+-
+-    if (!isAuthorized) {
+-      throw new HttpsError(
+-        'permission-denied',
+-        'عفواً، لا تملك صلاحية تحديث البيانات المالية (مطلوب صلاحية مدير أو مدخل بيانات).'
+-      );
+-    }
+-
+-    // 3. Payload Validation
+-    const payload = request.data;
+-    if (!payload || !payload.operationType || !payload.data) {
+-      throw new HttpsError('invalid-argument', 'البيانات المرسلة غير مكتملة.');
+-    }
+-
+-    const serverTime = FieldValue.serverTimestamp();
+-    const nowIso = new Date().toISOString();
+-
+-    try {
+-      const batch = db.batch();
+-
+-      switch (payload.operationType) {
+-        // A. تحديث سجل ربع سنوي منفرد (الـ 26 عموداً ومزامنة جدول financials التراكمي)
+-        case 'quarterly_record': {
+-          const rec = payload.data;
+-          const ticker = (rec.ticker || payload.ticker || '').toUpperCase();
+-          const year = rec.year || payload.year;
+-          const quarter = (rec.quarter || payload.quarter || '').toUpperCase();
+-
+-          if (!ticker || !year || !quarter) {
+-            throw new HttpsError('invalid-argument', 'الرمز والسنة والربع حقول إلزامية.');
+-          }
+-
+-          const recordDocId = `${ticker}_${year}_${quarter}`;
+-          const qRef = db.collection('quarterly_financial_records').doc(recordDocId);
+-
+-          batch.set(
+-            qRef,
+-            {
+-              ...rec,
+-              ticker,
+-              year,
+-              quarter,
+-              updatedAt: nowIso,
+-              serverUpdatedAt: serverTime,
+-            },
+-            { merge: true }
+-          );
+-
+-          // مزامنة الوثيقة الموحدة لحسابات TTM ونماذج DCF
+-          const cId = ticker.toLowerCase();
+-          const finDocId = `${cId}_${year}_${quarter.toLowerCase()}`;
+-          const fRef = db.collection('financials').doc(finDocId);
+-
+-          batch.set(
+-            fRef,
+-            {
+-              id: finDocId,
+-              companyId: cId,
+-              year,
+-              quarter,
+-              periodDate: `${year}-12-31`,
+-              revenueYTD: rec.revenueYTD ?? null,
+-              grossProfitYTD: rec.grossProfitYTD ?? null,
+-              operatingProfitYTD: rec.ebitYTD ?? null,
+-              netProfitYTD: rec.netIncomeYTD ?? null,
+-              operatingCashFlowYTD: rec.ocfYTD ?? null,
+-              capexYTD: rec.capexYTD ?? null,
+-              dividendsPaidYTD: rec.dividendsPaidYTD ?? null,
+-              dpsCurrent: rec.dpsCurrent ?? null,
+-              totalAssets: rec.totalAssets ?? null,
+-              totalDebt: rec.totalDebtWithoutTX ?? null,
+-              cashAndEquivalents: rec.cash ?? null,
+-              totalEquity: rec.equity ?? null,
+-              sharesCount: rec.shares ?? null,
+-              updatedAt: nowIso,
+-              serverUpdatedAt: serverTime,
+-            },
+-            { merge: true }
+-          );
+-
+-          break;
+-        }
+-
+-        // B. تحديث سجل تداول يومي منفرد (الـ 40 عموداً وتحديث السعر السوقي اللحظي للشركة)
+-        case 'daily_record': {
+-          const daily = payload.data;
+-          const ticker = (daily.ticker || payload.ticker || '').toUpperCase();
+-          const tradeDate = daily.tradeDate || payload.tradeDate;
+-
+-          if (!ticker || !tradeDate) {
+-            throw new HttpsError('invalid-argument', 'رمز الشركة وتاريخ التداول حقول إلزامية.');
+-          }
+-
+-          const dailyDocId = `${ticker}_${tradeDate}`;
+-          const dRef = db.collection('daily_trading_records').doc(dailyDocId);
+-
+-          batch.set(
+-            dRef,
+-            {
+-              ...daily,
+-              ticker,
+-              tradeDate,
+-              updatedAt: nowIso,
+-              serverUpdatedAt: serverTime,
+-            },
+-            { merge: true }
+-          );
+-
+-          // تحديث سعر الشركة السوقي تلقائياً في الشركات المقيدة
+-          const compId = ticker.toLowerCase();
+-          const compRef = db.collection('companies').doc(compId);
+-          const effectivePrice = daily.lastPrice > 0 ? daily.lastPrice : daily.closePrice;
+-
+-          if (effectivePrice > 0) {
+-            batch.set(
+-              compRef,
+-              {
+-                marketPrice: effectivePrice,
+-                updatedAt: nowIso,
+-                serverUpdatedAt: serverTime,
+-              },
+-              { merge: true }
+-            );
+-          }
+-
+-          break;
+-        }
+-
+-        // C. استيراد جماعي لقوائم مالية ربع سنوية (Bulk Quarterly Import)
+-        case 'bulk_quarterly': {
+-          const records = Array.isArray(payload.data) ? payload.data : [];
+-          for (const item of records.slice(0, 400)) {
+-            const tk = (item.ticker || '').toUpperCase();
+-            const docId = `${tk}_${item.year}_${item.quarter}`;
+-            const ref = db.collection('quarterly_financial_records').doc(docId);
+-            batch.set(
+-              ref,
+-              {
+-                ...item,
+-                ticker: tk,
+-                updatedAt: nowIso,
+-                serverUpdatedAt: serverTime,
+-              },
+-              { merge: true }
+-            );
+-          }
+-          break;
+-        }
+-
+-        // D. استيراد جماعي لسجلات التداول اليومي (Bulk Daily Import)
+-        case 'bulk_daily': {
+-          const records = Array.isArray(payload.data) ? payload.data : [];
+-          for (const item of records.slice(0, 400)) {
+-            const tk = (item.ticker || '').toUpperCase();
+-            const docId = `${tk}_${item.tradeDate}`;
+-            const ref = db.collection('daily_trading_records').doc(docId);
+-            batch.set(
+-              ref,
+-              {
+-                ...item,
+-                ticker: tk,
+-                updatedAt: nowIso,
+-                serverUpdatedAt: serverTime,
+-              },
+-              { merge: true }
+-            );
+-          }
+-          break;
+-        }
+-
+-        // E. تحديث المعاملات الكلية الـ 29 (Macro Parameter Update)
+-        case 'macro_parameter': {
+-          const param = payload.data;
+-          if (!param.key) {
+-            throw new HttpsError('invalid-argument', 'مفتاح المتغير key إلزامي.');
+-          }
+-          const mRef = db.collection('macro_params').doc(param.key);
+-          batch.set(
+-            mRef,
+-            {
+-              ...param,
+-              updatedAt: nowIso,
+-              serverUpdatedAt: serverTime,
+-            },
+-            { merge: true }
+-          );
+-          break;
+-        }
+-
+-        default:
+-          throw new HttpsError('invalid-argument', 'نوع العملية غير معروف.');
+-      }
+-
+-      // تنفيذ الـ Batch ذرياً
+-      await batch.commit();
+-
+-      return {
+-        success: true,
+-        messageAr: 'تم تحديث البيانات المالية بنجاح من جهة الخادم وحفظ اتساق السجلات.',
+-        operationType: payload.operationType,
+-        updatedAt: nowIso,
+-        callerUid: uid,
+-      };
+-    } catch (err: any) {
+-      console.error('Server-side updateFinancialData error:', err);
+-      if (err instanceof HttpsError) {
+-        throw err;
+-      }
+-      throw new HttpsError('internal', `فشل في معالجة البيانات: ${err.message}`);
+-    }
++      count = records.length;
++    } else if (operationType === 'delete_quarterly') {
++      const [rec] = validateRecords([{ ticker, year, quarter }], true);
++      const tk = normalizedTicker(rec.ticker);
++      batch.delete(db.collection('quarterly_financial_records').doc(`${tk}_${year}_${quarter}`));
++      batch.delete(db.collection('financials').doc(`${tk.toLowerCase()}_${year}_${quarter.toLowerCase()}`));
++      count = 1;
++    } else if (operationType === 'delete_daily') {
++      const [rec] = validateRecords([{ ticker, tradeDate }], false);
++      batch.delete(db.collection('daily_trading_records').doc(`${normalizedTicker(rec.ticker)}_${tradeDate}`));
++      count = 1;
++    } else if (operationType === 'macro_parameter') {
++      if (!admin) throw new HttpsError('permission-denied', 'المعاملات للمدير فقط.');
++      if (!data || typeof data.key !== 'string' || !/^[A-Za-z][A-Za-z0-9_]{0,99}$/.test(data.key) || !Number.isFinite(data.value)) throw new Error('معامل غير صالح.');
++      batch.set(db.collection('macro_params').doc(data.key), { ...data, ...stamp }, { merge: true });
++      count = 1;
++    } else throw new Error('نوع العملية غير صالح.');
++  } catch (err) {
++    if (err instanceof HttpsError) throw err;
++    throw new HttpsError('invalid-argument', err instanceof Error ? err.message : 'بيانات غير صالحة.');
+   }
+-);
++  try { await batch.commit(); }
++  catch (err) { console.error('Financial write failed', err); throw new HttpsError('internal', 'تعذر الحفظ؛ لم يتم تأكيد العملية.'); }
++  return { success: true, processedCount: count, updatedAt: now };
++});
+diff --git a/new/functions/src/records.ts b/new/functions/src/records.ts
+new file mode 100644
+index 0000000..bb61030
+--- /dev/null
++++ b/new/functions/src/records.ts
+@@ -0,0 +1,59 @@
++// Pure validation/projection helpers, shared by single and bulk server writes.
++export function normalizedTicker(value: unknown): string {
++  if (typeof value !== 'string') throw new Error('رمز السهم مطلوب.');
++  const ticker = value.trim().toUpperCase().replace(/\.CA$/, '');
++  if (!/^[A-Z0-9_-]{1,30}$/.test(ticker)) throw new Error('رمز السهم غير صالح.');
++  return ticker;
++}
++export function validateRecords(value: unknown, quarterly: boolean): Record<string, any>[] {
++  if (!Array.isArray(value) || value.length < 1 || value.length > 200) throw new Error('أرسل من 1 إلى 200 سجل في الطلب الواحد.');
++  const keys = new Set<string>();
++  return value.map(item => {
++    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('سجل غير صالح.');
++    const ticker = normalizedTicker(item.ticker);
++    if (quarterly) {
++      if (!Number.isInteger(item.year) || item.year < 1900 || item.year > 2200 || !['Q1','Q2','Q3','FY'].includes(item.quarter)) throw new Error('السنة أو الربع غير صالح.');
++    } else {
++      if (typeof item.tradeDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.tradeDate) || !Number.isFinite(Date.parse(item.tradeDate)) || new Date(item.tradeDate).toISOString().slice(0,10) !== item.tradeDate) throw new Error('تاريخ التداول غير صالح.');
++    }
++    const numericFields = quarterly
++      ? ['depreciationAmortizationYTD','changeOperatingNwcYTD','valuationTaxRate','shares','intangibleAssets','totalAssets','equity','totalDebtWithoutTX','totalLiabilities','revenueYTD','grossProfitYTD','ebitYTD','pbtYTD','netIncomeYTD','ocfYTD','netInvestingCfYTD','dividendsPaidYTD','cash','dpsCurrent','interestExpenseYTD','financeCostsYTD','interestIncomeYTD','taxExpenseYTD','interestPaidYTD','capexYTD']
++      : ['lastPrice','closePrice','openPrice','listedShares','volume','turnoverValue','netLiquidity'];
++    for (const key of numericFields) {
++      const value = item[key];
++      if (value !== undefined && value !== null && (typeof value !== 'number' || !Number.isFinite(value))) throw new Error(`الحقل ${key} يجب أن يكون رقماً أو فارغاً.`);
++    }
++    if (quarterly) {
++      if (item.valuationTaxRate != null && (item.valuationTaxRate < 0 || item.valuationTaxRate > 1)) throw new Error('ضريبة التقييم بين صفر وواحد.');
++      if (item.depreciationAmortizationYTD != null && item.depreciationAmortizationYTD < 0) throw new Error('الإهلاك والاستنفاد قيمة موجبة أو صفر.');
++      if (item.financialUnit != null && item.financialUnit !== 'EGP_millions') throw new Error('الوحدة المدعومة هي مليون جنيه.');
++      if (item.valuationSource != null && (typeof item.valuationSource !== 'string' || item.valuationSource.length > 1000)) throw new Error('مرجع المصدر غير صالح.');
++    }
++    if ('shares' in item && (item.shares === null || item.shares <= 0)) throw new Error('عدد الأسهم يجب أن يكون موجباً.');
++    for (const v of Object.values(item)) if (typeof v === 'number' && !Number.isFinite(v)) throw new Error('قيمة رقمية غير صالحة.');
++    const id = quarterly ? `${ticker}_${item.year}_${item.quarter}` : `${ticker}_${item.tradeDate}`;
++    if (keys.has(id)) throw new Error('سجلات مكررة في الطلب.');
++    keys.add(id);
++    return { ...item, ticker };
++  });
++}
++export function financialProjection(rec: Record<string, any>) {
++  const companyId = normalizedTicker(rec.ticker).toLowerCase();
++  const ending: Record<string,string> = { Q1:'03-31', Q2:'06-30', Q3:'09-30', FY:'12-31' };
++  return {
++    id: `${companyId}_${rec.year}_${rec.quarter.toLowerCase()}`, companyId,
++    year: rec.year, quarter: rec.quarter, periodDate: `${rec.year}-${ending[rec.quarter]}`,
++    revenueYTD: rec.revenueYTD ?? null, grossProfitYTD: rec.grossProfitYTD ?? null,
++    operatingProfitYTD: rec.ebitYTD ?? null, netProfitYTD: rec.netIncomeYTD ?? null,
++    operatingCashFlowYTD: rec.ocfYTD ?? null, capexYTD: rec.capexYTD ?? null,
++    dividendsPaidYTD: rec.dividendsPaidYTD ?? null, dpsCurrent: rec.dpsCurrent ?? null,
++    totalAssets: rec.totalAssets ?? null, totalDebt: rec.totalDebtWithoutTX ?? null,
++    cashAndEquivalents: rec.cash ?? null, totalEquity: rec.equity ?? null,
++    sharesCount: rec.shares ?? null, isAudited: false,
++    depreciationAmortizationYTD: rec.depreciationAmortizationYTD ?? null,
++    changeOperatingNwcYTD: rec.changeOperatingNwcYTD ?? null,
++    valuationTaxRate: rec.valuationTaxRate ?? null,
++    valuationSource: rec.valuationSource ?? null,
++    financialUnit: rec.financialUnit ?? null,
++  };
++}
+diff --git a/old/functions/tsconfig.json b/new/functions/tsconfig.json
+index 62edb72..35f37e8 100644
+--- a/old/functions/tsconfig.json
++++ b/new/functions/tsconfig.json
+@@ -6,9 +6,7 @@
+     "outDir": "lib",
+     "sourceMap": true,
+     "strict": true,
+-    "target": "es2022",
+-    "moduleResolution": "node",
+-    "types": ["node"],
++    "target": "es2021",
+     "skipLibCheck": true,
+     "esModuleInterop": true
+   },
+diff --git a/old/package.json b/new/package.json
+index 04776d2..605d99b 100644
+--- a/old/package.json
++++ b/new/package.json
+@@ -7,14 +7,17 @@
+     "dev": "vite --port=3000 --host=0.0.0.0",
+     "build": "vite build",
+     "preview": "vite preview",
+-    "clean": "rm -rf dist server.js",
++    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+     "lint": "tsc --noEmit",
+     "deploy:hosting": "npm run build && firebase deploy --only hosting",
+     "deploy:rules": "firebase deploy --only firestore:rules",
+     "deploy:firestore": "firebase deploy --only firestore",
+     "deploy:functions": "firebase deploy --only functions",
+     "deploy:all": "npm run build && firebase deploy",
+-    "deploy": "npm run build && firebase deploy --only hosting,firestore"
++    "deploy": "npm run build && firebase deploy --only hosting,firestore",
++    "test": "node --import tsx --test tests/*.test.ts",
++    "test:rules": "firebase emulators:exec --only firestore --project demo-mizan-review \"node --test tests/firestore.rules.test.cjs\"",
++    "check": "npm run lint && npm test && npm run build && npm --prefix functions run build"
+   },
+   "dependencies": {
+     "@google/genai": "^2.4.0",
+@@ -31,6 +34,8 @@
+     "xlsx": "^0.18.5"
+   },
+   "devDependencies": {
++    "@firebase/rules-unit-testing": "^6.0.0",
++    "@types/express": "^4.17.21",
+     "@types/node": "^22.14.0",
+     "@types/react": "^19.3.0",
+     "@types/react-dom": "^19.3.0",
+@@ -38,7 +43,6 @@
+     "esbuild": "^0.28.0",
+     "tailwindcss": "^4.3.3",
+     "tsx": "^4.21.0",
+-    "typescript": "^7.0.2",
+-    "@types/express": "^4.17.21"
++    "typescript": "^7.0.2"
+   }
+ }
+diff --git a/old/src/App.tsx b/new/src/App.tsx
+index 31587c0..ccd76c9 100644
+--- a/old/src/App.tsx
++++ b/new/src/App.tsx
+@@ -3,7 +3,7 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+ 
+-import React, { useState, useMemo, useEffect } from 'react';
++import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+ import {
+   AppUser,
+   DailyTradingRecord,
+@@ -38,22 +38,23 @@ import {
+   calculateTTMMetrics,
+   runValuationModels,
+ } from './utils/financialCalculations';
++import { financialProjection } from '../functions/src/records';
+ import { computeComprehensiveValuation } from './core/math/valuation';
+ import { runStockHealthChecks } from './core/math/healthChecks';
+ import { runDataQualityAudit } from './utils/auditEngine';
+-import { exportCompanyValuationToExcel } from './utils/excelExport';
++
+ 
+ // Components & Modules
+ import { Navbar } from './components/Navbar';
+ import { Sidebar } from './components/Sidebar';
+ import { DashboardView } from './components/DashboardView';
+-import { ValuationView } from './components/ValuationView';
+-import { InvestmentStoryView } from './components/InvestmentStoryView';
+-import { DecisionMatrixView } from './components/DecisionMatrixView';
+-import { TradeLogView } from './components/TradeLogView';
++const ValuationView = lazy(() => import('./components/ValuationView').then(m => ({ default:m.ValuationView })));
++const InvestmentStoryView = lazy(() => import('./components/InvestmentStoryView').then(m => ({ default:m.InvestmentStoryView })));
++const DecisionMatrixView = lazy(() => import('./components/DecisionMatrixView').then(m => ({ default:m.DecisionMatrixView })));
++const TradeLogView = lazy(() => import('./components/TradeLogView').then(m => ({ default:m.TradeLogView })));
+ import { AddCompanyModal } from './components/AddCompanyModal';
+-import { AdminDashboard } from './modules/admin/AdminDashboard';
+-import { DataHubView } from './modules/data-hub/DataHubView';
++const AdminDashboard = lazy(() => import('./modules/admin/AdminDashboard').then(m => ({ default:m.AdminDashboard })));
++const DataHubView = lazy(() => import('./modules/data-hub/DataHubView').then(m => ({ default:m.DataHubView })));
+ import { AuthProvider, useAuth } from './context/AuthContext';
+ import { LoginModal } from './components/LoginModal';
+ import { RouteGuard } from './components/RouteGuard';
+@@ -71,6 +72,19 @@ function MainApp() {
+     switchRole,
+   } = useAuth();
+ 
++  const [saveError, setSaveError] = useState<string | null>(null);
++  const [saving, setSaving] = useState(false);
++  const persist = async (operation: () => Promise<void>): Promise<void> => {
++    setSaving(true); setSaveError(null);
++    try { await operation(); }
++    catch (error) {
++      const message = error instanceof Error ? error.message : 'تعذر الحفظ في السحابة.';
++      setSaveError(message);
++      throw error;
++    } finally { setSaving(false); }
++  };
++  const reportError = (error: unknown) => setSaveError(error instanceof Error ? error.message : 'تعذر الحفظ.');
++
+   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+ 
+   // 1. Core State
+@@ -110,19 +124,9 @@ function MainApp() {
+   useEffect(() => {
+     let isMounted = true;
+ 
+-    // A. Seed initial benchmark EGX companies into Firestore if project is freshly initialized
+-    FirestoreService.seedInitialDataIfEmpty().then((seeded) => {
+-      if (seeded && isMounted) {
+-        setCompanies(FirestoreService.getCachedCompanies());
+-        setFinancials(FirestoreService.getCachedFinancials());
+-        setStories(FirestoreService.getCachedStories());
+-        setDecisions(FirestoreService.getCachedDecisions());
+-        setTrades(FirestoreService.getCachedTrades());
+-        setMacroParams(FirestoreService.getCachedMacroParameters());
+-      }
+-    });
++    if (!firebaseUser || !appUser?.isActive) return;
+ 
+-    // B. Run Smart Incremental Delta Query using updatedAt (Zero-Reads pattern)
++    // B. Run Smart Incremental Delta Query using updatedAt (Incremental Sync pattern)
+     FirestoreService.syncAllIncrementalDeltas().then((stats) => {
+       if (isMounted) setSyncStats(stats);
+     });
+@@ -130,10 +134,10 @@ function MainApp() {
+     // C. Activate automatic real-time listener
+     const unsubscribe = FirestoreService.subscribeToAll({
+       onCompanies: (updated) => {
+-        if (isMounted && updated.length > 0) setCompanies(updated);
++        if (isMounted) setCompanies(updated);
+       },
+       onFinancials: (updated) => {
+-        if (isMounted && updated.length > 0) setFinancials(updated);
++        if (isMounted) setFinancials(updated);
+       },
+       onStories: (updated) => {
+         if (isMounted) setStories(updated);
+@@ -142,10 +146,13 @@ function MainApp() {
+         if (isMounted) setDecisions(updated);
+       },
+       onTrades: (updated) => {
+-        if (isMounted && updated.length > 0) setTrades(updated);
++        if (isMounted) setTrades(updated);
+       },
++      onDailyTrading: (updated) => { if (isMounted) setDailyRecords(updated); },
++      onQuarterlyRecords: (updated) => { if (isMounted) setQuarterlyRecords(updated); },
++      onSectorPE: (values) => { if (isMounted) setSectorPEMap(values); },
+       onMacroParams: (updated) => {
+-        if (isMounted && updated.length > 0) setMacroParams(updated);
++        if (isMounted) setMacroParams(updated);
+       },
+     });
+ 
+@@ -153,13 +160,13 @@ function MainApp() {
+       isMounted = false;
+       unsubscribe();
+     };
+-  }, []);
++  }, [firebaseUser?.uid, appUser?.isActive]);
+ 
+   const handleManualSync = async () => {
+     setSyncStats((prev) => ({
+       ...prev,
+       status: 'syncing',
+-      messageAr: 'جارٍ فحص التحديثات التزايدية (Zero-Reads)...',
++      messageAr: 'جارٍ فحص التحديثات التزايدية (Incremental Sync)...',
+     }));
+     const stats = await FirestoreService.syncAllIncrementalDeltas();
+     setSyncStats(stats);
+@@ -212,8 +219,16 @@ function MainApp() {
+ 
+   // Selected Company Entity
+   const selectedCompany = useMemo(() => {
+-    return companies.find((c) => c.id === selectedCompanyId) || companies[0];
+-  }, [companies, selectedCompanyId]);
++    const company = companies.find(c => c.id === selectedCompanyId) || companies[0] || {
++      id:'empty',ticker:'—',nameAr:'لا توجد شركة محملة',nameEn:'',sector:'',marketPrice:0,sharesOutstanding:0,
++      beta:1,riskFreeRate:0,equityRiskPremium:0,costOfDebt:0,taxRate:0,targetDebtRatio:0,
++      sustainableGrowthRate:0,shortTermGrowthRate:0,targetPE:0,targetPB:0,currency:'EGP'
++    };
++    const latest = dailyRecords.filter(r => r.ticker.replace('.CA','') === company.ticker.replace('.CA',''))
++      .sort((a,b) => b.tradeDate.localeCompare(a.tradeDate))[0];
++    const price = latest ? (latest.lastPrice > 0 ? latest.lastPrice : latest.closePrice) : 0;
++    return price > 0 ? { ...company, marketPrice: price } : company;
++  }, [companies, selectedCompanyId, dailyRecords]);
+ 
+   // Parameters lookup map
+   const paramsMap = useMemo(() => {
+@@ -229,44 +244,18 @@ function MainApp() {
+     return calculateTTMMetrics(selectedCompany, financials);
+   }, [selectedCompany, financials]);
+ 
+-  // Comprehensive Valuation Engine Outputs
+-  const engineOutputs = useMemo(() => {
+-    const baseTicker = selectedCompany.ticker.replace('.CA', '');
+-    return computeComprehensiveValuation(
+-      {
+-        ticker: selectedCompany.ticker,
+-        marketPrice: selectedCompany.marketPrice,
+-        sharesOutstanding: selectedCompany.sharesOutstanding,
+-        betaRaw: selectedCompany.beta,
+-        netIncomeTTM: metricsTTM.netIncomeTTM,
+-        ocfTTM: metricsTTM.operatingCashFlowTTM,
+-        capexTTM: metricsTTM.capexTTM,
+-        fcfTTM: metricsTTM.fcfTTM,
+-        totalEquity: financials.find((f) => f.companyId === selectedCompany.id)?.totalEquity ?? null,
+-        totalDebt: financials.find((f) => f.companyId === selectedCompany.id)?.totalDebt ?? null,
+-        cash: financials.find((f) => f.companyId === selectedCompany.id)?.cashAndEquivalents ?? null,
+-        dpsCurrent: metricsTTM.dpsCurrent,
+-        sector: selectedCompany.sector,
+-        sectorPE: sectorPEMap[selectedCompany.sector] || 7.0,
+-      },
+-      paramsMap
+-    );
+-  }, [selectedCompany, metricsTTM, financials, sectorPEMap, paramsMap]);
+-
+-  // Legacy compatibility for UI views
+-  const valuation = useMemo(() => {
+-    const res = runValuationModels(selectedCompany, metricsTTM);
+-    // دمج القيم المحسوبة من المتغيرات الكلية الـ 29
+-    res.compositeFairValue = engineOutputs.compositeFairValue;
+-    res.marginOfSafetyPct = engineOutputs.marginOfSafetyPct;
+-    res.upsidePotentialPct = engineOutputs.upsidePotentialPct;
+-    if (engineOutputs.dcfValue) res.dcfFairValue = engineOutputs.dcfValue;
+-    if (engineOutputs.ddmValue) res.ddmFairValue = engineOutputs.ddmValue;
+-    if (engineOutputs.rimValue) res.rimFairValue = engineOutputs.rimValue;
+-    if (engineOutputs.relativeValue) res.relativeFairValue = engineOutputs.relativeValue;
+-    if (engineOutputs.grahamValue) res.grahamFairValue = engineOutputs.grahamValue;
+-    return res;
+-  }, [selectedCompany, metricsTTM, engineOutputs]);
++  const valuation = useMemo(() => runValuationModels(
++    { ...selectedCompany, targetPE: sectorPEMap[selectedCompany.sector] ?? selectedCompany.targetPE }, metricsTTM, undefined, paramsMap
++  ), [selectedCompany, metricsTTM, sectorPEMap, paramsMap]);
++  const engineOutputs = useMemo(() => ({
++    ...computeComprehensiveValuation({ ticker:selectedCompany.ticker, marketPrice:selectedCompany.marketPrice,
++      sharesOutstanding:selectedCompany.sharesOutstanding, betaRaw:selectedCompany.beta,
++      netIncomeTTM:metricsTTM.netIncomeTTM, ocfTTM:metricsTTM.operatingCashFlowTTM, capexTTM:metricsTTM.capexTTM,
++      fcfTTM:metricsTTM.fcfTTM, fcffTTM:metricsTTM.fcffTTM,
++      totalEquity:metricsTTM.bvps !== null ? metricsTTM.bvps * selectedCompany.sharesOutstanding : null,
++      totalDebt:metricsTTM.totalDebtLatest ?? null, cash:metricsTTM.cashLatest ?? null, dpsCurrent:metricsTTM.dpsCurrent, sector:selectedCompany.sector,
++      sectorPE:sectorPEMap[selectedCompany.sector] ?? selectedCompany.targetPE, sectorPB:selectedCompany.targetPB }, paramsMap),
++  }), [selectedCompany, metricsTTM, sectorPEMap, paramsMap]);
+ 
+   // Automated Data Quality Audit
+   const auditWarnings = useMemo(() => {
+@@ -279,7 +268,7 @@ function MainApp() {
+     const stockDaily = dailyRecords.filter(
+       (d) => d.ticker === baseTicker || d.ticker === selectedCompany.ticker
+     );
+-    const latestDaily = stockDaily[stockDaily.length - 1];
++    const latestDaily = [...stockDaily].sort((a,b) => b.tradeDate.localeCompare(a.tradeDate))[0];
+ 
+     const stockQuarterly = quarterlyRecords.filter(
+       (q) => q.ticker === baseTicker || q.ticker === selectedCompany.ticker
+@@ -290,7 +279,7 @@ function MainApp() {
+       dailyRecord: latestDaily,
+       quarterlyRecords: stockQuarterly,
+       engineOutputs,
+-      terminalGrowth: paramsMap['Terminal_Growth'] || 0.05,
++      terminalGrowth: paramsMap['Terminal_Growth'] ?? 0.05,
+     });
+   }, [selectedCompany, dailyRecords, quarterlyRecords, engineOutputs, paramsMap]);
+ 
+@@ -302,11 +291,11 @@ function MainApp() {
+       ticker: selectedCompany.ticker,
+       businessOverview: selectedCompany.description || 'شركة مقيدة في البورصة المصرية.',
+       economicMoat: {
+-        rating: 'متوسط (Narrow)',
+-        description: 'تتمتع الشركة بمركز تنافسي محلي وعلاقات تجارية راسخة.',
+-        advantages: ['حصة سوقية مستقرة', 'شبكة توزيع وتوريد محلية'],
++        rating: 'منعدم (None)',
++        description: 'لم يُقيّم الخندق الاقتصادي بعد؛ يلزم إدخال تحليل موثق.',
++        advantages: [],
+       },
+-      investmentThesis: 'الاستثمار في السهم يعتمد على نمو النشاط وتحسن الكفاءة التشغيلية.',
++      investmentThesis: 'لم تُكتب الأطروحة الاستثمارية بعد.',
+       catalysts: ['إعلانات عقود أو مشروعات جديدة', 'استقرار أسعار الصرف والتضخم'],
+       risks: ['ارتفاع تكاليف التمويل وأسعار الفائدة', 'تقلبات تكاليف المواد الخام'],
+       analystVerdict: 'تتطلب المراقبة والتقييم المستمر وفق النتائج الربع سنوية القادمة.',
+@@ -316,19 +305,19 @@ function MainApp() {
+ 
+   const currentDecision: DecisionItem = useMemo(() => {
+     if (decisions[selectedCompany.id]) return decisions[selectedCompany.id];
+-    const isUndervalued = valuation.marginOfSafetyPct > 15;
++    const isUndervalued = (valuation.marginOfSafetyPct ?? 0) > 15;
+     return {
+       companyId: selectedCompany.id,
+       ticker: selectedCompany.ticker,
+       fundamentalVerdict: isUndervalued ? 'أقل من القيمة العادلة' : 'قريب من القيمة العادلة',
+-      valuationReasonAr: `القيمة العادلة المرجحة تبلغ ${valuation.compositeFairValue.toFixed(2)} ج.م بهامش أمان ${valuation.marginOfSafetyPct.toFixed(1)}%.`,
++      valuationReasonAr: valuation.compositeFairValue === null ? 'لا تتوفر بيانات كافية لتقييم موثوق.' : `القيمة العادلة المرجحة تبلغ ${(valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح')} ج.م بهامش أمان ${(valuation.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%.`,
+       timingVerdict: 'حيادي / انتظار محفز',
+       timingReasonAr: 'في انتظار اختراق فني أو إعلان نتائج تشغيلية تدعم الزخم.',
+-      finalDecision: isUndervalued ? 'شراء حذر' : 'احتفاظ',
++      finalDecision: 'مراقبة لصيقة',
+       targetEntryRange: `${(selectedCompany.marketPrice * 0.95).toFixed(2)} - ${(selectedCompany.marketPrice * 1.02).toFixed(2)} ج.م`,
+       stopLossPrice: Number((selectedCompany.marketPrice * 0.88).toFixed(2)),
+-      targetExitPrice: Number(valuation.compositeFairValue.toFixed(2)),
+-      riskRewardRatio: 3.0,
++      targetExitPrice: Number(valuation.compositeFairValue?.toFixed(2) ?? 0),
++      riskRewardRatio: 0,
+       notes: 'تحديد نقاط الدخول بعناية ومراعاة حركة مؤشر السوق الرئيسي.',
+       updatedAt: new Date().toISOString().split('T')[0],
+     };
+@@ -336,216 +325,69 @@ function MainApp() {
+ 
+   // Handlers
+   const handleAddCompany = (newComp: Company) => {
+-    setCompanies((prev) => [...prev, newComp]);
++    if (!canEditFinancials) return;
++    FirestoreService.createCompany(newComp).then(() => setCompanies(prev => [...prev, newComp])).catch(reportError);
+     setSelectedCompanyId(newComp.id);
+   };
+ 
+   const handleUpdateCompanyParams = (updates: Partial<Company>) => {
+-    setCompanies((prev) =>
+-      prev.map((c) => (c.id === selectedCompany.id ? { ...c, ...updates } : c))
+-    );
++    if (!canEditFinancials) return;
++    const updated = { ...selectedCompany, ...updates };
++    FirestoreService.updateCompany(updated).then(() => setCompanies(prev => prev.map(c => c.id === updated.id ? updated : c))).catch(reportError);
+   };
+ 
+-  const handleImportDailyRecords = (newRecords: DailyTradingRecord[], tradeDate: string) => {
+-    const merged = CacheService.mergeDailyTradingRecords(newRecords);
+-    setDailyRecords(merged);
+-    FirestoreService.bulkSaveDailyTradingRecords(merged).catch(console.warn);
+-
+-    // تحديث الأسعار السوقية للشركات القائمة بناءً على إقفال اليوم
+-    setCompanies((prev) =>
+-      prev.map((comp) => {
+-        const cleanTicker = comp.ticker.replace('.CA', '');
+-        const match = newRecords.find((r) => r.ticker === cleanTicker || r.ticker === comp.ticker);
+-        if (match && match.lastPrice > 0) {
+-          return {
+-            ...comp,
+-            marketPrice: match.lastPrice,
+-            sharesOutstanding: match.listedShares > 0 ? match.listedShares / 1000000 : comp.sharesOutstanding,
+-          };
+-        }
+-        return comp;
+-      })
+-    );
+-  };
+-
+-  const handleImportQuarterlyRecords = (newRecords: QuarterlyFinancialRecord[]) => {
+-    const merged = CacheService.mergeQuarterlyFinancialRecords(newRecords);
+-    setQuarterlyRecords(merged);
+-    FirestoreService.bulkSaveQuarterlyRecords(merged).catch(console.warn);
+-
+-    // دمج السجلات في جدول financials
+-    const newQuarterlyFinancials: QuarterlyFinancial[] = newRecords.map((r) => {
+-      const cId = r.ticker.toLowerCase();
+-      return {
+-        id: `${cId}_${r.year}_${r.quarter.toLowerCase()}`,
+-        companyId: cId,
+-        year: r.year,
+-        quarter: r.quarter,
+-        periodDate: `${r.year}-12-31`,
+-        revenueYTD: r.revenueYTD,
+-        grossProfitYTD: r.grossProfitYTD,
+-        operatingProfitYTD: r.ebitYTD,
+-        netProfitYTD: r.netIncomeYTD,
+-        operatingCashFlowYTD: r.ocfYTD,
+-        capexYTD: r.capexYTD,
+-        dividendsPaidYTD: r.dividendsPaidYTD,
+-        dpsCurrent: r.dpsCurrent,
+-        totalAssets: r.totalAssets,
+-        totalDebt: r.totalDebtWithoutTX,
+-        cashAndEquivalents: r.cash,
+-        totalEquity: r.equity,
+-        sharesCount: r.shares,
+-        isAudited: true,
+-        notes: `استيراد تلقائي من ${r.yearQuarter}`,
+-        updatedAt: new Date().toISOString(),
+-      };
++  const mergeQuarterly = (records: QuarterlyFinancialRecord[]) => {
++    setQuarterlyRecords(prev => {
++      const map = new Map(prev.map(r => [`${r.ticker}_${r.year}_${r.quarter}`, r]));
++      records.forEach(r => map.set(`${r.ticker}_${r.year}_${r.quarter}`, r));
++      return [...map.values()];
+     });
+-
+-    setFinancials((prev) => {
+-      const map = new Map<string, QuarterlyFinancial>();
+-      for (const item of prev) {
+-        map.set(`${item.companyId}_${item.year}_${item.quarter}`, item);
+-      }
+-      for (const item of newQuarterlyFinancials) {
+-        map.set(`${item.companyId}_${item.year}_${item.quarter}`, item);
+-      }
+-      const updatedList = Array.from(map.values());
+-      FirestoreService.bulkSaveFinancials(updatedList).catch(console.warn);
+-      return updatedList;
++    setFinancials(prev => {
++      const map = new Map(prev.map(r => [r.id, r]));
++      records.forEach(r => { const f = financialProjection(r) as QuarterlyFinancial; map.set(f.id, f); });
++      return [...map.values()];
+     });
+   };
+-
+-  const handleUpdateQuarterlyRecord = (updatedRecord: QuarterlyFinancialRecord) => {
+-    // 1. تحديث في حالة السجلات الربع سنوية
+-    setQuarterlyRecords((prev) =>
+-      prev.map((r) =>
+-        r.ticker === updatedRecord.ticker &&
+-        r.year === updatedRecord.year &&
+-        r.quarter === updatedRecord.quarter
+-          ? updatedRecord
+-          : r
+-      )
+-    );
+-
+-    // 2. تحديث جدول financials المتكامل مع نماذج التقييم ومؤشرات TTM
+-    const cId = updatedRecord.ticker.toLowerCase();
+-    const docId = `${cId}_${updatedRecord.year}_${updatedRecord.quarter.toLowerCase()}`;
+-    setFinancials((prev) =>
+-      prev.map((f) => {
+-        if (f.companyId === cId && f.year === updatedRecord.year && f.quarter === updatedRecord.quarter) {
+-          return {
+-            ...f,
+-            revenueYTD: updatedRecord.revenueYTD,
+-            grossProfitYTD: updatedRecord.grossProfitYTD,
+-            operatingProfitYTD: updatedRecord.ebitYTD,
+-            netProfitYTD: updatedRecord.netIncomeYTD,
+-            operatingCashFlowYTD: updatedRecord.ocfYTD,
+-            capexYTD: updatedRecord.capexYTD,
+-            dividendsPaidYTD: updatedRecord.dividendsPaidYTD,
+-            dpsCurrent: updatedRecord.dpsCurrent,
+-            totalAssets: updatedRecord.totalAssets,
+-            totalDebt: updatedRecord.totalDebtWithoutTX,
+-            cashAndEquivalents: updatedRecord.cash,
+-            totalEquity: updatedRecord.equity,
+-            sharesCount: updatedRecord.shares,
+-            updatedAt: new Date().toISOString(),
+-          };
+-        }
+-        return f;
+-      })
+-    );
+-
+-    // 3. الحفظ المباشر في قاعدة بيانات Firestore السحابية مع ختم updatedAt لضمان Zero-Reads
+-    FirestoreService.saveQuarterlyFinancialRecord(updatedRecord).catch(console.warn);
+-    FirestoreService.updateFinancial({
+-      id: docId,
+-      companyId: cId,
+-      year: updatedRecord.year,
+-      quarter: updatedRecord.quarter,
+-      periodDate: `${updatedRecord.year}-12-31`,
+-      revenueYTD: updatedRecord.revenueYTD,
+-      grossProfitYTD: updatedRecord.grossProfitYTD,
+-      operatingProfitYTD: updatedRecord.ebitYTD,
+-      netProfitYTD: updatedRecord.netIncomeYTD,
+-      operatingCashFlowYTD: updatedRecord.ocfYTD,
+-      capexYTD: updatedRecord.capexYTD,
+-      dividendsPaidYTD: updatedRecord.dividendsPaidYTD,
+-      dpsCurrent: updatedRecord.dpsCurrent,
+-      totalAssets: updatedRecord.totalAssets,
+-      totalDebt: updatedRecord.totalDebtWithoutTX,
+-      cashAndEquivalents: updatedRecord.cash,
+-      totalEquity: updatedRecord.equity,
+-      sharesCount: updatedRecord.shares,
+-      isAudited: true,
+-      updatedAt: new Date().toISOString(),
+-    }).catch(console.warn);
+-  };
+-
+-  const handleDeleteQuarterlyRecord = (ticker: string, year: number, quarter: string) => {
+-    setQuarterlyRecords((prev) =>
+-      prev.filter((r) => !(r.ticker === ticker && r.year === year && r.quarter === quarter))
+-    );
+-    setFinancials((prev) =>
+-      prev.filter((f) => !(f.companyId === ticker.toLowerCase() && f.year === year && f.quarter === quarter))
+-    );
+-    FirestoreService.deleteQuarterlyFinancialRecord(ticker, year, quarter).catch(console.warn);
+-    FirestoreService.deleteFinancial(`${ticker.toLowerCase()}_${year}_${quarter.toLowerCase()}`).catch(console.warn);
+-  };
+-
+-  const handleUpdateDailyRecord = (updatedRecord: DailyTradingRecord) => {
+-    setDailyRecords((prev) =>
+-      prev.map((d) =>
+-        d.ticker === updatedRecord.ticker && d.tradeDate === updatedRecord.tradeDate
+-          ? updatedRecord
+-          : d
+-      )
+-    );
+-    FirestoreService.saveDailyTradingRecord(updatedRecord).catch(console.warn);
+-
+-    // Sync company market price and shares if updated
+-    setCompanies((prev) =>
+-      prev.map((comp) => {
+-        const cleanTicker = comp.ticker.replace('.CA', '');
+-        if (cleanTicker === updatedRecord.ticker || comp.ticker === updatedRecord.ticker) {
+-          const effectivePrice = updatedRecord.lastPrice > 0 ? updatedRecord.lastPrice : updatedRecord.closePrice;
+-          if (effectivePrice > 0) {
+-            return {
+-              ...comp,
+-              marketPrice: effectivePrice,
+-              sharesOutstanding:
+-                updatedRecord.listedShares > 0
+-                  ? updatedRecord.listedShares / 1000000
+-                  : comp.sharesOutstanding,
+-            };
+-          }
+-        }
+-        return comp;
+-      })
+-    );
+-  };
+-
+-  const handleDeleteDailyRecord = (ticker: string, tradeDate: string) => {
+-    setDailyRecords((prev) =>
+-      prev.filter((d) => !(d.ticker === ticker && d.tradeDate === tradeDate))
+-    );
+-    FirestoreService.deleteDailyTradingRecord(ticker, tradeDate).catch(console.warn);
++  const mergeDaily = (records: DailyTradingRecord[]) => {
++    setDailyRecords(prev => {
++      const map = new Map(prev.map(r => [`${r.ticker}_${r.tradeDate}`, r]));
++      records.forEach(r => map.set(`${r.ticker}_${r.tradeDate}`, r));
++      return [...map.values()].sort((a,b) => a.tradeDate.localeCompare(b.tradeDate));
++    });
+   };
++  const handleImportDailyRecords = (records: DailyTradingRecord[], _date: string) => persist(async () => {
++    await FirestoreService.bulkSaveDailyTradingRecords(records); mergeDaily(records);
++  });
++  const handleImportQuarterlyRecords = (records: QuarterlyFinancialRecord[]) => persist(async () => {
++    await FirestoreService.bulkSaveQuarterlyRecords(records); mergeQuarterly(records);
++  });
++  const handleUpdateQuarterlyRecord = (record: QuarterlyFinancialRecord) => persist(async () => {
++    await FirestoreService.saveQuarterlyFinancialRecord(record); mergeQuarterly([record]);
++  });
++  const handleDeleteQuarterlyRecord = (ticker: string, year: number, quarter: string) => persist(async () => {
++    await FirestoreService.deleteQuarterlyFinancialRecord(ticker, year, quarter);
++    setQuarterlyRecords(prev => prev.filter(r => !(r.ticker === ticker && r.year === year && r.quarter === quarter)));
++    setFinancials(prev => prev.filter(r => !(r.companyId === ticker.toLowerCase() && r.year === year && r.quarter === quarter)));
++  });
++  const handleUpdateDailyRecord = (record: DailyTradingRecord) => persist(async () => {
++    await FirestoreService.saveDailyTradingRecord(record); mergeDaily([record]);
++  });
++  const handleDeleteDailyRecord = (ticker: string, tradeDate: string) => persist(async () => {
++    await FirestoreService.deleteDailyTradingRecord(ticker, tradeDate);
++    setDailyRecords(prev => prev.filter(r => !(r.ticker === ticker && r.tradeDate === tradeDate)));
++  });
+ 
+-  const handleUpdateStory = (updatedStory: InvestmentStory) => {
+-    setStories((prev) => ({
+-      ...prev,
+-      [selectedCompany.id]: updatedStory,
+-    }));
++  const handleUpdateStory = (story: InvestmentStory) => {
++    if (!isAdmin) return;
++    FirestoreService.saveStory(story).then(() => setStories(prev => ({ ...prev, [story.companyId]:story }))).catch(reportError);
+   };
+-
+-  const handleUpdateDecision = (updatedDecision: DecisionItem) => {
+-    setDecisions((prev) => ({
+-      ...prev,
+-      [selectedCompany.id]: updatedDecision,
+-    }));
++  const handleUpdateDecision = (decision: DecisionItem) => {
++    if (!isAdmin) return;
++    FirestoreService.saveDecision(decision).then(() => setDecisions(prev => ({ ...prev, [decision.companyId]:decision }))).catch(reportError);
+   };
+ 
+   const handleCreateTradeFromDecision = (decisionItem: DecisionItem) => {
++    if (!canExecuteTrades || valuation.compositeFairValue === null) { setSaveError('لا يمكن إنشاء صفقة دون صلاحية وقيمة عادلة متاحة.'); return; }
+     const newTrade: TradeLog = {
+       id: `trade_${Date.now()}`,
+       companyId: selectedCompany.id,
+@@ -560,29 +402,36 @@ function MainApp() {
+       entryDate: new Date().toISOString().split('T')[0],
+       notes: `ترحيل من مصفوفة القرار: ${decisionItem.finalDecision}`,
+     };
+-    setTrades((prev) => [newTrade, ...prev]);
++    if (!canExecuteTrades) return;
++    FirestoreService.createTrade(newTrade).then(() => setTrades(prev => [newTrade, ...prev])).catch(reportError);
+     setActiveTab('trades');
+   };
+ 
+   const handleAddTrade = (newTrade: TradeLog) => {
+-    setTrades((prev) => [newTrade, ...prev]);
++    if (!canExecuteTrades) return;
++    FirestoreService.createTrade(newTrade).then(() => setTrades(prev => [newTrade, ...prev])).catch(reportError);
+   };
+ 
+   const handleUpdateTrade = (id: string, updates: Partial<TradeLog>) => {
+-    setTrades((prev) =>
+-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+-    );
++    if (!canExecuteTrades) return;
++    const trade = trades.find(t => t.id === id);
++    if (!trade) return;
++    const updated = { ...trade, ...updates };
++    FirestoreService.updateTrade(updated).then(() => setTrades(prev => prev.map(t => t.id === id ? updated : t))).catch(reportError);
+   };
+ 
+   const handleDeleteTrade = (id: string) => {
+-    setTrades((prev) => prev.filter((t) => t.id !== id));
++    if (!canExecuteTrades) return;
++    FirestoreService.deleteTrade(id).then(() => setTrades(prev => prev.filter(t => t.id !== id))).catch(reportError);
+   };
+ 
+-  const handleExportExcel = () => {
++  const handleExportExcel = async () => {
++    if (valuation.compositeFairValue === null) { setSaveError('التقييم غير متاح؛ أكمل البيانات قبل تصدير تقرير التقييم.'); return; }
++    const { exportCompanyValuationToExcel } = await import('./utils/excelExport');
+     exportCompanyValuationToExcel(
+       selectedCompany,
+       financials.filter((f) => f.companyId === selectedCompany.id),
+-      metricsTTM,
++      { ...metricsTTM, wacc:engineOutputs.wacc, costOfEquity:engineOutputs.costOfEquity },
+       valuation,
+       auditWarnings
+     );
+@@ -599,7 +448,7 @@ function MainApp() {
+     }
+   };
+ 
+-  const effectiveUser = appUser || currentUser;
++  const effectiveUser = appUser || { ...CacheService.getCurrentUser(), role: 'subscriber' as UserRole, tier: 'free' as const, isActive: false };
+   const effectiveRole = effectiveUser.role;
+ 
+   return (
+@@ -651,12 +500,17 @@ function MainApp() {
+           onOpenLogin={() => setIsLoginModalOpen(true)}
+         />
+ 
++        <div role="status" className="px-6 py-2 text-sm text-amber-300">
++          {saving ? 'جارٍ الحفظ في السحابة…' : saveError ? `فشل الحفظ: ${saveError}` : 'راجع مصادر البيانات والافتراضات قبل اعتماد التقييم. البيانات الأولية المرفقة أمثلة وليست أسعاراً حية.'}
++        </div>
++        <div className="px-6 text-xs text-amber-200">{engineOutputs.modelNotes.join(' • ')} · افتراض RIM: احتجاز أرباح 50%، واستمرار الدخل المتبقي دون نمو بعد السنة الخامسة.</div>
+         {/* Main Viewport Container with Route Protection */}
++        <Suspense fallback={<p role="status" className="p-6">جارٍ تحميل الصفحة…</p>}>
+         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+           {activeTab === 'dashboard' && (
+             <DashboardView
+               company={selectedCompany}
+-              metrics={metricsTTM}
++              metrics={{ ...metricsTTM, wacc:engineOutputs.wacc, costOfEquity:engineOutputs.costOfEquity }}
+               valuation={valuation}
+               warnings={auditWarnings}
+               onNavigateToTab={setActiveTab}
+@@ -666,10 +520,9 @@ function MainApp() {
+           {activeTab === 'valuation' && (
+             <ValuationView
+               company={selectedCompany}
+-              metrics={metricsTTM}
++              metrics={{ ...metricsTTM, wacc:engineOutputs.wacc, costOfEquity:engineOutputs.costOfEquity }}
+               valuation={valuation}
+               onUpdateCompanyParams={handleUpdateCompanyParams}
+-              onUpdateWeights={() => {}}
+             />
+           )}
+ 
+@@ -741,13 +594,13 @@ function MainApp() {
+             canAccessAdmin ? (
+               <AdminDashboard
+                 macroParams={macroParams}
+-                onSaveMacroParams={setMacroParams}
++                onSaveMacroParams={(params) => persist(async () => { await FirestoreService.bulkSaveMacroParameters(params); setMacroParams(params); })}
+                 sectorPEMap={sectorPEMap}
+-                onSaveSectorPE={setSectorPEMap}
++                onSaveSectorPE={(values) => { FirestoreService.saveSectorPE(values).then(() => setSectorPEMap(values)).catch(reportError); }}
+                 users={users}
+-                onSaveUsers={setUsers}
++                onSaveUsers={() => setSaveError('إدارة أدوار المستخدمين محلياً معطلة؛ يلزم مسار إدارة موثوق على الخادم.')}
+                 currentUser={effectiveUser}
+-                onSwitchUser={setCurrentUser}
++                onSwitchUser={() => setSaveError('لا يمكن تبديل هوية المستخدم من قائمة محلية.')}
+               />
+             ) : (
+               <RouteGuard
+@@ -762,6 +615,7 @@ function MainApp() {
+             )
+           )}
+         </main>
++        </Suspense>
+ 
+         {/* Footer */}
+         <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-400 no-print mt-auto">
+@@ -793,8 +647,6 @@ function MainApp() {
+ 
+ export default function App() {
+   return (
+-    <AuthProvider>
+-      <MainApp />
+-    </AuthProvider>
++    <MainApp />
+   );
+ }
+diff --git a/old/src/components/DashboardView.tsx b/new/src/components/DashboardView.tsx
+index 9c506d8..2a9f0cc 100644
+--- a/old/src/components/DashboardView.tsx
++++ b/new/src/components/DashboardView.tsx
+@@ -41,9 +41,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+   warnings,
+   onNavigateToTab,
+ }) => {
+-  const isUndervalued = valuation.marginOfSafetyPct > 0;
+-  const deepDiscount = valuation.marginOfSafetyPct >= 20;
+-  const isOvervalued = valuation.marginOfSafetyPct < -10;
++  const isUndervalued = (valuation.marginOfSafetyPct ?? 0) > 0;
++  const deepDiscount = (valuation.marginOfSafetyPct ?? 0) >= 20;
++  const isOvervalued = (valuation.marginOfSafetyPct ?? 0) < -10;
+ 
+   // فحص تنبيهات التدقيق الخاصة بهذا السهم
+   const companyWarnings = warnings.filter((w) => w.companyTicker === company.ticker);
+@@ -147,7 +147,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+                 <span className="text-xs text-slate-400 block font-medium">القيمة العادلة المرجحة</span>
+                 <div className="flex items-baseline gap-2 mt-1">
+                   <span className="text-3xl font-extrabold font-mono text-emerald-400">
+-                    {valuation.compositeFairValue.toFixed(2)}
++                    {(valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح')}
+                   </span>
+                   <span className="text-sm text-slate-400">ج.م / سهم</span>
+                 </div>
+@@ -185,12 +185,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+                       isUndervalued ? 'text-emerald-400' : isOvervalued ? 'text-red-400' : 'text-amber-400'
+                     }`}
+                   >
+-                    {valuation.marginOfSafetyPct > 0 ? '+' : ''}
+-                    {valuation.marginOfSafetyPct.toFixed(1)}%
++                    {(valuation.marginOfSafetyPct ?? 0) > 0 ? '+' : ''}
++                    {(valuation.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%
+                   </span>
+                 </div>
+                 <div className="text-xs mt-2 font-medium">
+-                  {deepDiscount ? (
++                  {valuation.compositeFairValue === null ? (<span className="text-amber-300">التقييم غير متاح؛ لا يمكن تحديد الخصم أو المغالاة.</span>) : deepDiscount ? (
+                     <span className="text-emerald-300">خصم عميق مغرٍ للشراء الاستثماري</span>
+                   ) : isUndervalued ? (
+                     <span className="text-emerald-300">يتداول السهم بأقل من قيمته العادلة</span>
+@@ -208,27 +208,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+               <div className="flex justify-between text-xs text-slate-400 font-medium">
+                 <span>موقع السعر السوقي من القيمة العادلة</span>
+                 <span className="font-mono text-slate-300">
+-                  العائد الصعودي المحتمل: {valuation.upsidePotentialPct > 0 ? '+' : ''}
+-                  {valuation.upsidePotentialPct.toFixed(1)}%
++                  العائد الصعودي المحتمل: {(valuation.upsidePotentialPct ?? 0) > 0 ? '+' : ''}
++                  {(valuation.upsidePotentialPct?.toFixed(1) ?? 'غير متاح')}%
+                 </span>
+               </div>
+               <div className="w-full bg-slate-950 rounded-full h-3 relative overflow-hidden border border-slate-800">
+                 <div
+                   className="h-full bg-gradient-to-r from-emerald-600 to-teal-400 rounded-full transition-all duration-500"
+                   style={{
+-                    width: `${Math.min(
+-                      100,
+-                      Math.max(15, (company.marketPrice / valuation.compositeFairValue) * 65)
+-                    )}%`,
++                    width: valuation.compositeFairValue !== null && valuation.compositeFairValue > 0 ? `${Math.min(100, Math.max(0, company.marketPrice / valuation.compositeFairValue * 65))}%` : '0%',
+                   }}
+                 />
+               </div>
+               <div className="flex justify-between text-[11px] text-slate-400 font-mono pt-0.5">
+                 <span>0.00</span>
+                 <span className="text-emerald-400 font-semibold">
+-                  القيمة العادلة: {valuation.compositeFairValue.toFixed(2)} ج.م
++                  القيمة العادلة: {(valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح')} ج.م
+                 </span>
+-                <span>{valuation.scenarios.bull.fairValue.toFixed(2)} ج.م (متفائل)</span>
++                <span>{(valuation.scenarios.bull.fairValue?.toFixed(2) ?? 'غير متاح')} ج.م (متفائل)</span>
+               </div>
+             </div>
+           </div>
+@@ -236,7 +233,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+           {/* Quick link to sensitivity */}
+           <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+             <span className="text-slate-400">
+-              WACC: <strong className="font-mono text-slate-200">{(metrics.wacc * 100).toFixed(1)}%</strong> | تكلفة حقوق الملكية Ke:{' '}
++              WACC: <strong className="font-mono text-slate-200">{(metrics.wacc === null ? 'غير متاح' : (metrics.wacc * 100).toFixed(1))}%</strong> | تكلفة حقوق الملكية Ke:{' '}
+               <strong className="font-mono text-slate-200">{(metrics.costOfEquity * 100).toFixed(1)}%</strong>
+             </span>
+             <button
+@@ -408,7 +405,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+             <span className="text-[11px] text-slate-400 block font-medium">WACC (تكلفة رأس المال)</span>
+             <div className="flex items-baseline gap-1 mt-1">
+               <span className="text-lg font-bold font-mono text-amber-400">
+-                {(metrics.wacc * 100).toFixed(1)}%
++                {(metrics.wacc === null ? 'غير متاح' : (metrics.wacc * 100).toFixed(1))}%
+               </span>
+             </div>
+             <span className="text-[10px] text-slate-400 mt-1 block font-mono">
+@@ -448,16 +445,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+             <div className="flex justify-between items-center text-xs">
+               <span className="font-semibold text-slate-300">السيناريو المتحفظ (Bear)</span>
+               <span className="text-[11px] text-slate-400 font-mono">
+-                WACC: {(valuation.scenarios.bear.discountRate * 100).toFixed(1)}%
++                Ke: {(valuation.scenarios.bear.discountRate * 100).toFixed(1)}%
+               </span>
+             </div>
+             <div className="mt-2 flex items-baseline gap-2">
+               <span className="text-xl font-bold font-mono text-slate-100">
+-                {valuation.scenarios.bear.fairValue.toFixed(2)} ج.م
++                {(valuation.scenarios.bear.fairValue?.toFixed(2) ?? 'غير متاح')} ج.م
+               </span>
+               <span className="text-xs font-mono text-slate-400">
+-                ({valuation.scenarios.bear.marginOfSafetyPct > 0 ? '+' : ''}
+-                {valuation.scenarios.bear.marginOfSafetyPct.toFixed(1)}%)
++                ({(valuation.scenarios.bear.marginOfSafetyPct ?? 0) > 0 ? '+' : ''}
++                {(valuation.scenarios.bear.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%)
+               </span>
+             </div>
+             <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+@@ -473,16 +470,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+             <div className="flex justify-between items-center text-xs">
+               <span className="font-semibold text-emerald-400">السيناريو الأساسي (Base)</span>
+               <span className="text-[11px] text-slate-400 font-mono">
+-                WACC: {(valuation.scenarios.base.discountRate * 100).toFixed(1)}%
++                Ke: {(valuation.scenarios.base.discountRate * 100).toFixed(1)}%
+               </span>
+             </div>
+             <div className="mt-2 flex items-baseline gap-2">
+               <span className="text-xl font-bold font-mono text-emerald-400">
+-                {valuation.scenarios.base.fairValue.toFixed(2)} ج.م
++                {(valuation.scenarios.base.fairValue?.toFixed(2) ?? 'غير متاح')} ج.م
+               </span>
+               <span className="text-xs font-mono text-emerald-300">
+-                ({valuation.scenarios.base.marginOfSafetyPct > 0 ? '+' : ''}
+-                {valuation.scenarios.base.marginOfSafetyPct.toFixed(1)}%)
++                ({(valuation.scenarios.base.marginOfSafetyPct ?? 0) > 0 ? '+' : ''}
++                {(valuation.scenarios.base.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%)
+               </span>
+             </div>
+             <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+@@ -495,16 +492,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
+             <div className="flex justify-between items-center text-xs">
+               <span className="font-semibold text-slate-300">السيناريو المتفائل (Bull)</span>
+               <span className="text-[11px] text-slate-400 font-mono">
+-                WACC: {(valuation.scenarios.bull.discountRate * 100).toFixed(1)}%
++                Ke: {(valuation.scenarios.bull.discountRate * 100).toFixed(1)}%
+               </span>
+             </div>
+             <div className="mt-2 flex items-baseline gap-2">
+               <span className="text-xl font-bold font-mono text-teal-300">
+-                {valuation.scenarios.bull.fairValue.toFixed(2)} ج.م
++                {(valuation.scenarios.bull.fairValue?.toFixed(2) ?? 'غير متاح')} ج.م
+               </span>
+               <span className="text-xs font-mono text-teal-400">
+-                ({valuation.scenarios.bull.marginOfSafetyPct > 0 ? '+' : ''}
+-                {valuation.scenarios.bull.marginOfSafetyPct.toFixed(1)}%)
++                ({(valuation.scenarios.bull.marginOfSafetyPct ?? 0) > 0 ? '+' : ''}
++                {(valuation.scenarios.bull.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%)
+               </span>
+             </div>
+             <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+diff --git a/new/src/components/DcfDetailsView.tsx b/new/src/components/DcfDetailsView.tsx
+new file mode 100644
+index 0000000..f127209
+--- /dev/null
++++ b/new/src/components/DcfDetailsView.tsx
+@@ -0,0 +1,20 @@
++import React from 'react';
++import type { FinancialMetricsTTM, ValuationResults } from '../types/financial';
++const n=(v:number|null|undefined,d=2)=>v==null?'غير متاح':v.toFixed(d);
++export function DcfDetailsView({metrics,valuation}:{metrics:FinancialMetricsTTM;valuation:ValuationResults}) {
++ const d=valuation.dcfDetails;
++ const rows:[string,number|null|undefined][]=[['NOPAT_TTM',metrics.nopatTTM],['+ D&A_TTM',metrics.depreciationAmortizationTTM],['− CapEx_TTM',metrics.capexTTM],['− ΔOperating NWC_TTM',metrics.changeOperatingNwcTTM],['= FCFF_TTM',metrics.fcffTTM]];
++ return <div className="space-y-4" dir="rtl">
++  <h4 className="font-bold">تسوية FCFF والتقييم بـ DCF</h4>
++  <p className="text-xs text-slate-400">FCFF = EBIT × (1 − ضريبة التقييم) + D&A − CapEx − ΔNWC. الحسابات بالمليون جنيه، والناتج لكل سهم بالجنيه. يختلف FCFF عن OCF − CapEx.</p>
++  <table className="w-full text-sm"><tbody>{rows.map(([k,v])=><tr key={k}><th className="text-start p-2" dir="ltr">{k}</th><td>{n(v)}</td></tr>)}</tbody></table>
++  {metrics.fcffNotes?.map(note=><p key={note} className="text-xs text-amber-300">{note}</p>)}
++  {!d ? <p className="text-amber-300">جدول DCF غير متاح؛ راجع اكتمال FCFF وصافي الدين وWACC وملاءمة القطاع.</p> : <>
++   <p>WACC: {n(d.wacc*100)}% · النمو النهائي: {n(d.terminalGrowth*100)}% · صافي الدين: {n(d.netDebt)}</p>
++   <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>{['السنة','النمو','FCFF','معامل الخصم','القيمة الحالية'].map(t=><th key={t} className="p-2">{t}</th>)}</tr></thead><tbody>{d.years.map(y=><tr key={y.year}><td>{y.year}</td><td>{n(y.growth*100)}%</td><td>{n(y.fcff)}</td><td>{n(y.discountFactor,4)}</td><td>{n(y.presentValue)}</td></tr>)}</tbody></table></div>
++   <p>القيمة الحالية للقيمة النهائية: {n(d.presentTerminalValue)} · قيمة المنشأة: {n(d.enterpriseValue)} · حقوق الملكية: {n(d.equityValue)}</p>
++   <p className="text-teal-300">قيمة السهم: {n(valuation.dcfFairValue)} ج.م</p>
++   <p className="text-xs text-amber-300">الجدول من نفس محرك القيمة المعروضة. النمو توقع مدخل وليس نمواً مضموناً؛ الدين المسجل تقريب للدين في أوزان WACC، ولا يعادل بالضرورة قيمته السوقية.</p>
++  </>}
++ </div>;
++}
+diff --git a/old/src/components/DecisionMatrixView.tsx b/new/src/components/DecisionMatrixView.tsx
+index 71c0fb4..2abf292 100644
+--- a/old/src/components/DecisionMatrixView.tsx
++++ b/new/src/components/DecisionMatrixView.tsx
+@@ -158,7 +158,7 @@ export const DecisionMatrixView: React.FC<DecisionMatrixViewProps> = ({
+                 {formData.finalDecision}
+               </span>
+               <span className="text-xs font-mono text-slate-300">
+-                السعر الحالي: {company.marketPrice.toFixed(2)} ج.م · القيمة العادلة: {valuation.compositeFairValue.toFixed(2)} ج.م
++                السعر الحالي: {company.marketPrice.toFixed(2)} ج.م · القيمة العادلة: {(valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح')} ج.م
+               </span>
+             </div>
+           </div>
+@@ -201,8 +201,8 @@ export const DecisionMatrixView: React.FC<DecisionMatrixViewProps> = ({
+               <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 text-xs">
+                 <span className="text-slate-400 block font-medium mb-1">بيانات التقييم المالي المرجحة:</span>
+                 <div className="grid grid-cols-2 gap-2 font-mono text-slate-300">
+-                  <div>القيمة العادلة: {valuation.compositeFairValue.toFixed(2)} ج.م</div>
+-                  <div>هامش الأمان: {valuation.marginOfSafetyPct.toFixed(1)}%</div>
++                  <div>القيمة العادلة: {(valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح')} ج.م</div>
++                  <div>هامش الأمان: {(valuation.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%</div>
+                   <div>مضاعف الربحية P/E: {company.targetPE}x</div>
+                   <div>مضاعف الدفترية P/B: {company.targetPB}x</div>
+                 </div>
+diff --git a/new/src/components/FcffInputs.tsx b/new/src/components/FcffInputs.tsx
+new file mode 100644
+index 0000000..84cdfe7
+--- /dev/null
++++ b/new/src/components/FcffInputs.tsx
+@@ -0,0 +1,22 @@
++import React from 'react';
++import type { QuarterlyFinancialRecord } from '../types';
++export function FcffInputs({record,onChange}:{record:QuarterlyFinancialRecord;onChange:(updates:Partial<QuarterlyFinancialRecord>)=>void}) {
++  const number = (key:keyof QuarterlyFinancialRecord, label:string,min?:number,max?:number) => <label className="block text-xs text-slate-300">{label}
++    <input aria-label={label} type="number" step="any" min={min} max={max} value={record[key] == null ? '' : String(record[key])}
++      onChange={e=>onChange({[key]:e.target.value.trim()==='' ? null : Number(e.target.value)})}
++      className="block w-full bg-slate-950 border border-slate-700 rounded p-2 mt-1" /></label>;
++  return <fieldset className="p-4 border border-teal-800 rounded-xl space-y-3" dir="rtl">
++    <legend className="text-teal-300">مدخلات FCFF الموثقة — اختيارية</legend>
++    <p className="text-xs text-slate-400">القيم تراكمية منذ بداية السنة. CapEx والإهلاك موجبان. زيادة رأس المال العامل التشغيلي موجبة وتستهلك نقداً؛ النقص سالب. استبعد النقد والديون من رأس المال العامل. لا تضع صفراً مكان بيانات مفقودة.</p>
++    <div className="grid sm:grid-cols-3 gap-3">
++      {number('depreciationAmortizationYTD','الإهلاك والاستنفاد YTD — مليون جنيه',0)}
++      {number('changeOperatingNwcYTD','زيادة رأس المال العامل التشغيلي YTD — مليون جنيه')}
++      {number('valuationTaxRate','ضريبة التقييم على EBIT — كسر عشري من 0 إلى 1',0,1)}
++    </div>
++    <label className="block text-xs">مرجع المصدر والفترة / الصفحة
++      <input aria-label="مرجع تسوية FCFF" maxLength={1000} value={record.valuationSource ?? ''} onChange={e=>onChange({valuationSource:e.target.value || null})} className="block w-full bg-slate-950 border border-slate-700 rounded p-2 mt-1" />
++    </label>
++    <label className="flex gap-2 text-xs"><input type="checkbox" checked={record.financialUnit === 'EGP_millions'} onChange={e=>onChange({financialUnit:e.target.checked?'EGP_millions':null})} />أؤكد أن المبالغ بالمليون جنيه والأسهم بالمليون، وأن الفترات والمصدر متسقة.</label>
++    <p className="text-xs text-amber-300">ضريبة التقييم افتراض على EBIT وليست مصروف الضريبة ÷ صافي الربح. أثر الخسائر الضريبية يحتاج تسوية مستقلة.</p>
++  </fieldset>;
++}
+diff --git a/old/src/components/LoginModal.tsx b/new/src/components/LoginModal.tsx
+index 5de3aa0..a96f392 100644
+--- a/old/src/components/LoginModal.tsx
++++ b/new/src/components/LoginModal.tsx
+@@ -176,7 +176,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
+           </div>
+ 
+           {/* Quick Demo Switcher (For local testing & preview) */}
+-          <div className="pt-3 border-t border-slate-800">
++          {import.meta.env.DEV && <div className="pt-3 border-t border-slate-800">
+             <span className="text-[11px] text-slate-400 font-semibold block mb-2">
+               أو تجربة سريعة بالأدوار المتاحة (Fast Demo Roles):
+             </span>
+@@ -208,7 +208,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
+                 <span>مشترك</span>
+               </button>
+             </div>
+-          </div>
++          </div>}
+         </div>
+ 
+         {/* Footer */}
+diff --git a/old/src/components/ValuationView.tsx b/new/src/components/ValuationView.tsx
+index 903b955..c49f07d 100644
+--- a/old/src/components/ValuationView.tsx
++++ b/new/src/components/ValuationView.tsx
+@@ -1,3 +1,4 @@
++import { DcfDetailsView } from './DcfDetailsView';
+ /**
+  * @license
+  * SPDX-License-Identifier: Apache-2.0
+@@ -26,7 +27,6 @@ interface ValuationViewProps {
+   metrics: FinancialMetricsTTM;
+   valuation: ValuationResults;
+   onUpdateCompanyParams: (updates: Partial<Company>) => void;
+-  onUpdateWeights: (weights: { dcf: number; ddm: number; rim: number; relative: number; graham: number }) => void;
+ }
+ 
+ export const ValuationView: React.FC<ValuationViewProps> = ({
+@@ -34,7 +34,6 @@ export const ValuationView: React.FC<ValuationViewProps> = ({
+   metrics,
+   valuation,
+   onUpdateCompanyParams,
+-  onUpdateWeights,
+ }) => {
+   const [activeModelTab, setActiveModelTab] = useState<'dcf' | 'ddm' | 'rim' | 'relative' | 'graham'>('dcf');
+ 
+@@ -56,7 +55,7 @@ export const ValuationView: React.FC<ValuationViewProps> = ({
+           <div className="flex items-center gap-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800 shrink-0">
+             <span className="text-xs text-slate-400">القيمة العادلة المرجحة:</span>
+             <span className="text-lg font-bold font-mono text-emerald-400">
+-              {valuation.compositeFairValue.toFixed(2)} ج.م
++              {(valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح')} ج.م
+             </span>
+             <span className="text-xs text-slate-500">·</span>
+             <span className="text-xs text-slate-300 font-mono">
+@@ -167,7 +166,7 @@ export const ValuationView: React.FC<ValuationViewProps> = ({
+             <span className="text-slate-600">|</span>
+             <span>
+               متوسط تكلفة رأس المال (WACC):{' '}
+-              <strong className="font-mono text-emerald-400 font-bold">{(metrics.wacc * 100).toFixed(2)}%</strong>
++              <strong className="font-mono text-emerald-400 font-bold">{(metrics.wacc === null ? 'غير متاح' : (metrics.wacc * 100).toFixed(2))}%</strong>
+             </span>
+           </div>
+         </div>
+@@ -249,88 +248,7 @@ export const ValuationView: React.FC<ValuationViewProps> = ({
+         {/* Tab Content */}
+         <div className="mt-5">
+           {/* TAB 1: DCF */}
+-          {activeModelTab === 'dcf' && (
+-            <div className="space-y-4">
+-              <div className="flex flex-col md:flex-row md:items-center justify-between bg-slate-950/70 p-4 rounded-xl border border-slate-800 gap-4">
+-                <div>
+-                  <h4 className="text-sm font-bold text-white">نموذج التدفقات النقدية الحرة المخصومة (DCF)</h4>
+-                  <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+-                    يعتمد على خصم التدفق النقدي الحر للشركة (FCF_TTM) لـ 5 سنوات قادمة بمعدل نمو متوقع{' '}
+-                    <span className="font-mono text-slate-200">{(company.shortTermGrowthRate * 100).toFixed(0)}%</span>{' '}
+-                    ثم إضافة القيمة المتبقية (Terminal Value) وخصم صافي الدين للوصول للقيمة العادلة لحقوق الملكية.
+-                  </p>
+-                </div>
+-                <div className="text-end shrink-0">
+-                  <span className="text-xs text-slate-400 block">القيمة العادلة للسهم (DCF)</span>
+-                  <span className="text-2xl font-bold font-mono text-emerald-400">
+-                    {valuation.dcfFairValue ? `${valuation.dcfFairValue.toFixed(2)} ج.م` : 'غير متاح'}
+-                  </span>
+-                </div>
+-              </div>
+-
+-              {/* 5-Year Forecast Table */}
+-              <div className="overflow-x-auto border border-slate-800 rounded-xl">
+-                <table className="w-full text-xs text-start">
+-                  <thead className="bg-slate-950 text-slate-400 border-b border-slate-800">
+-                    <tr>
+-                      <th className="p-3 text-start">البند / السنة</th>
+-                      <th className="p-3 text-end font-mono">سنة الأساس TTM</th>
+-                      <th className="p-3 text-end font-mono">السنة 1</th>
+-                      <th className="p-3 text-end font-mono">السنة 2</th>
+-                      <th className="p-3 text-end font-mono">السنة 3</th>
+-                      <th className="p-3 text-end font-mono">السنة 4</th>
+-                      <th className="p-3 text-end font-mono">السنة 5</th>
+-                    </tr>
+-                  </thead>
+-                  <tbody className="divide-y divide-slate-800/60 bg-slate-900/60 font-mono">
+-                    <tr>
+-                      <td className="p-3 text-slate-300 font-sans font-medium">
+-                        التدفق النقدي الحر FCF (مليون ج.م)
+-                      </td>
+-                      <td className="p-3 text-end text-slate-400">
+-                        {metrics.fcfTTM ? metrics.fcfTTM.toFixed(0) : '-'}
+-                      </td>
+-                      {[1, 2, 3, 4, 5].map((year) => {
+-                        const base = metrics.fcfTTM || 1000;
+-                        const proj = base * Math.pow(1 + company.shortTermGrowthRate, year);
+-                        return (
+-                          <td key={year} className="p-3 text-end text-slate-200">
+-                            {proj.toFixed(0)}
+-                          </td>
+-                        );
+-                      })}
+-                    </tr>
+-                    <tr>
+-                      <td className="p-3 text-slate-300 font-sans font-medium">معامل الخصم (1 / (1+WACC)^t)</td>
+-                      <td className="p-3 text-end text-slate-400">1.00</td>
+-                      {[1, 2, 3, 4, 5].map((year) => {
+-                        const factor = 1 / Math.pow(1 + metrics.wacc, year);
+-                        return (
+-                          <td key={year} className="p-3 text-end text-slate-400">
+-                            {factor.toFixed(3)}
+-                          </td>
+-                        );
+-                      })}
+-                    </tr>
+-                    <tr className="bg-slate-950/40 font-bold">
+-                      <td className="p-3 text-emerald-400 font-sans">القيمة الحالية للتدفق PV (مليون ج.م)</td>
+-                      <td className="p-3 text-end text-slate-400">-</td>
+-                      {[1, 2, 3, 4, 5].map((year) => {
+-                        const base = metrics.fcfTTM || 1000;
+-                        const proj = base * Math.pow(1 + company.shortTermGrowthRate, year);
+-                        const factor = 1 / Math.pow(1 + metrics.wacc, year);
+-                        return (
+-                          <td key={year} className="p-3 text-end text-emerald-400">
+-                            {(proj * factor).toFixed(0)}
+-                          </td>
+-                        );
+-                      })}
+-                    </tr>
+-                  </tbody>
+-                </table>
+-              </div>
+-            </div>
+-          )}
++          {activeModelTab === 'dcf' && <DcfDetailsView metrics={metrics} valuation={valuation} />}
+ 
+           {/* TAB 2: DDM */}
+           {activeModelTab === 'ddm' && (
+@@ -584,7 +502,7 @@ export const ValuationView: React.FC<ValuationViewProps> = ({
+                     {row.map((cell, cellIdx) => {
+                       const isBaseCell =
+                         Math.abs(cell.growthRate - company.sustainableGrowthRate) < 0.015 &&
+-                        Math.abs(cell.discountRate - metrics.wacc) < 0.015;
++                        Math.abs(cell.discountRate - metrics.costOfEquity) < 0.015;
+ 
+                       let cellBg = 'bg-slate-950/40 text-slate-200';
+                       if (cell.status === 'deeply_undervalued') {
+@@ -609,10 +527,10 @@ export const ValuationView: React.FC<ValuationViewProps> = ({
+                               الأساسي
+                             </span>
+                           )}
+-                          <div className="text-sm font-semibold">{cell.fairValue.toFixed(2)}</div>
++                          <div className="text-sm font-semibold">{(cell.fairValue?.toFixed(2) ?? 'غير متاح')}</div>
+                           <div className="text-[10px] opacity-75">
+-                            {cell.diffPct > 0 ? '+' : ''}
+-                            {cell.diffPct.toFixed(0)}%
++                            {(cell.diffPct ?? 0) > 0 ? '+' : ''}
++                            {(cell.diffPct?.toFixed(0) ?? 'غير متاح')}%
+                           </div>
+                         </td>
+                       );
+diff --git a/old/src/context/AuthContext.tsx b/new/src/context/AuthContext.tsx
+index 0519354..e264b63 100644
+--- a/old/src/context/AuthContext.tsx
++++ b/new/src/context/AuthContext.tsx
+@@ -39,11 +39,11 @@ interface AuthContextType {
+ const AuthContext = createContext<AuthContextType | undefined>(undefined);
+ 
+ // Admin bootstrap emails
+-const ADMIN_EMAILS = ['maao2004@gmail.com', 'admin@mizan.eg'];
++const ADMIN_EMAILS = ['maao2004@gmail.com'];
+ 
+ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+-  const [appUser, setAppUser] = useState<AppUser | null>(() => CacheService.getCurrentUser());
++  const [appUser, setAppUser] = useState<AppUser | null>(null);
+   const [loading, setLoading] = useState<boolean>(true);
+   const [error, setError] = useState<string | null>(null);
+ 
+@@ -58,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+           const tokenResult = await getIdTokenResult(user, true);
+           const claimRole = (tokenResult.claims.role as UserRole) || undefined;
+           const isAdminClaim = Boolean(tokenResult.claims.admin);
++          const adminGrant = await getDoc(doc(db, 'admins', user.uid));
+ 
+           // 2. Fetch or create Firestore user profile doc (/users/{uid})
+           const userDocRef = doc(db, 'users', user.uid);
+@@ -69,21 +70,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+           }
+ 
+           let resolvedRole: UserRole = 'subscriber';
+-          let resolvedTier: SubscriptionTier = 'gold';
++          let resolvedTier: SubscriptionTier = 'free';
+ 
+           const isBootstrappedAdmin =
+-            isAdminClaim ||
+-            (user.email && ADMIN_EMAILS.includes(user.email.toLowerCase())) ||
+-            user.email?.endsWith('@mizan.eg');
++            isAdminClaim || adminGrant.exists() ||
++            (user.emailVerified && !!user.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+ 
+           if (userDocSnap && userDocSnap.exists()) {
+             const data = userDocSnap.data();
+-            resolvedRole = claimRole || (isBootstrappedAdmin ? 'admin' : (data.role as UserRole) || 'subscriber');
+-            resolvedTier = (data.tier as SubscriptionTier) || 'gold';
++            resolvedRole = claimRole || (isBootstrappedAdmin ? 'admin' : (data.role === 'admin' ? 'data_entry' : data.role as UserRole) || 'subscriber');
++            resolvedTier = (data.tier as SubscriptionTier) || 'free';
++            if (data.isActive === false) throw new Error('الحساب معطل؛ تواصل مع الإدارة.');
+           } else {
+             // Create user document in Firestore
+             resolvedRole = claimRole || (isBootstrappedAdmin ? 'admin' : 'subscriber');
+-            resolvedTier = isBootstrappedAdmin ? 'institutional' : 'gold';
++            resolvedTier = 'free';
+ 
+             try {
+               await setDoc(
+@@ -93,8 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+                   email: user.email || '',
+                   displayName: user.displayName || user.email?.split('@')[0] || 'مستخدم ميزان',
+                   photoURL: user.photoURL || '',
+-                  role: resolvedRole,
+-                  tier: resolvedTier,
++                  role: 'subscriber',
++                  tier: 'free',
+                   isActive: true,
+                   createdAt: new Date().toISOString(),
+                   lastLoginAt: new Date().toISOString(),
+@@ -122,13 +123,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+           CacheService.setCurrentUser(profile);
+         } catch (err: any) {
+           console.error('Error resolving user auth details:', err);
++          setAppUser(null);
+           setError(err.message || 'حدث خطأ أثناء تحميل بيانات المستخدم');
+         }
+       } else {
+         setFirebaseUser(null);
+         // Retain local session or default guest
+-        const cached = CacheService.getCurrentUser();
+-        setAppUser(cached);
++        setAppUser(null);
+       }
+       setLoading(false);
+     });
+@@ -172,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+ 
+   // Demo Sign-In (Local rapid switching for review & development)
+   const signInWithDemo = async (role: UserRole = 'admin') => {
++    if (!import.meta.env.DEV || auth.currentUser) throw new Error('الوضع التجريبي متاح محلياً دون جلسة حقيقية فقط.');
+     setError(null);
+     const demoUser: AppUser = {
+       id: `demo_${role}_${Date.now()}`,
+@@ -220,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+ 
+   // Switch role (Admin privilege to test other roles)
+   const switchRole = (newRole: UserRole) => {
+-    if (!appUser) return;
++    if (!import.meta.env.DEV || auth.currentUser || !appUser?.id.startsWith('demo_')) return;
+     const updated: AppUser = { ...appUser, role: newRole };
+     setAppUser(updated);
+     CacheService.setCurrentUser(updated);
+@@ -232,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
+   const isSubscriber = useMemo(() => appUser?.role === 'subscriber' || appUser?.role === 'admin', [appUser]);
+   const canEditFinancials = useMemo(() => appUser?.role === 'admin' || appUser?.role === 'data_entry', [appUser]);
+   const canAccessAdmin = useMemo(() => appUser?.role === 'admin', [appUser]);
+-  const canExecuteTrades = useMemo(() => appUser?.role === 'admin' || appUser?.role === 'subscriber', [appUser]);
++  const canExecuteTrades = useMemo(() => appUser?.role === 'admin', [appUser]);
+ 
+   return (
+     <AuthContext.Provider
+diff --git a/old/src/core/math/healthChecks.ts b/new/src/core/math/healthChecks.ts
+index 120e96b..63b3b24 100644
+--- a/old/src/core/math/healthChecks.ts
++++ b/new/src/core/math/healthChecks.ts
+@@ -1,3 +1,4 @@
++import { readYtdTTM } from '../../utils/financialCalculations';
+ /**
+  * @license
+  * SPDX-License-Identifier: Apache-2.0
+@@ -40,23 +41,9 @@ export function runStockHealthChecks(inputs: HealthCheckInputs): StockHealthChec
+   const last4 = sortedQuarters.slice(-4);
+   const quartersCount = last4.length;
+ 
+-  // فك التراكم لحساب التدفق الفعلي
+-  let ocfSum = 0;
+-  let capexSum = 0;
+-  let hasValidOcf = false;
+-
+-  for (const q of last4) {
+-    if (q.ocfYTD !== null) {
+-      ocfSum += q.ocfYTD;
+-      hasValidOcf = true;
+-    }
+-    if (q.capexYTD !== null) {
+-      capexSum += q.capexYTD;
+-    }
+-  }
+-
+-  const ocfTTM = hasValidOcf ? ocfSum : null;
+-  const fcfTTM = ocfTTM !== null ? ocfTTM - capexSum : null;
++  const ocfTTM = readYtdTTM(sortedQuarters, q => q.ocfYTD);
++  const capexTTM = readYtdTTM(sortedQuarters, q => q.capexYTD);
++  const fcfTTM = ocfTTM !== null && capexTTM !== null ? ocfTTM-capexTTM : null;
+ 
+   // 1. OCF_TTM موجب (البعد: السلامة)
+   const isOcfPositive = ocfTTM !== null && ocfTTM > 0;
+@@ -89,18 +76,18 @@ export function runStockHealthChecks(inputs: HealthCheckInputs): StockHealthChec
+   });
+ 
+   // 3. TTM = 4 أرباع (البعد: الاكتمال)
+-  const isFourQuarters = quartersCount === 4;
++  const isFourQuarters = ocfTTM !== null && capexTTM !== null;
+   checks.push({
+     id: 'ttm_four_quarters',
+-    name: 'TTM = 4 أرباع',
++    name: 'تغطية TTM موثقة',
+     category: 'الاكتمال',
+     order: 3,
+     status: isFourQuarters ? 'pass' : 'warning',
+     actualValue: `${quartersCount} أرباع متاحة`,
+-    expectedRule: '[_TTM_Quarters_Count] = 4',
++    expectedRule: 'FY أو YTD + FY السابق - YTD المقارن',
+     detailsAr: isFourQuarters
+-      ? 'تكتمل السلسلة الزمنية لـ 4 أرباع متتالية لحساب مؤشرات TTM بدقة متناهية.'
+-      : 'عدد الأرباع المسجلة أقل من 4؛ تم إجراء حساب نسبي سنوي، يرجى استكمال الأرباع الناقصة.',
++      ? 'تتوفر القيم التراكمية اللازمة لحساب اثني عشر شهراً دون تعميم تقديري.'
++      : 'المدخلات اللازمة لـ TTM غير مكتملة؛ لا يُجرى تحويل تقديري إلى سنة.',
+   });
+ 
+   // 4. Equity ≤ TotalAssets (البعد: الاتساق)
+@@ -140,14 +127,14 @@ export function runStockHealthChecks(inputs: HealthCheckInputs): StockHealthChec
+   });
+ 
+   // 6. WACC > g (البعد: المنطق)
+-  const isWaccGreaterThanG = engineOutputs.wacc > terminalGrowth;
++  const isWaccGreaterThanG = engineOutputs.wacc !== null && engineOutputs.wacc > terminalGrowth;
+   checks.push({
+     id: 'wacc_greater_than_g',
+     name: 'WACC > g',
+     category: 'المنطق',
+     order: 6,
+     status: isWaccGreaterThanG ? 'pass' : 'fail',
+-    actualValue: `WACC: ${(engineOutputs.wacc * 100).toFixed(1)}% | g: ${(terminalGrowth * 100).toFixed(1)}%`,
++    actualValue: `WACC: ${(engineOutputs.wacc === null ? 'غير متاح' : (engineOutputs.wacc * 100).toFixed(1))}% | g: ${(terminalGrowth * 100).toFixed(1)}%`,
+     expectedRule: '[WACC_Values] > [P_Terminal_Growth_g]',
+     detailsAr: isWaccGreaterThanG
+       ? 'الشرط الرياضي لنموذج التدفقات المخصومة محقق: تكلفة رأس المال أعلى من النمو النهائي المستدام.'
+@@ -155,7 +142,7 @@ export function runStockHealthChecks(inputs: HealthCheckInputs): StockHealthChec
+   });
+ 
+   // 7. PE_Ratio > 0 (البعد: التقييم)
+-  const peRatio = dailyRecord?.peRatio ?? (engineOutputs.epsTTM && engineOutputs.epsTTM > 0 ? (dailyRecord?.lastPrice || 10) / engineOutputs.epsTTM : null);
++  const peRatio = dailyRecord?.peRatio ?? (engineOutputs.epsTTM !== null && engineOutputs.epsTTM > 0 && dailyRecord && dailyRecord.lastPrice > 0 ? dailyRecord.lastPrice / engineOutputs.epsTTM : null);
+   const isPePositive = peRatio !== null && peRatio > 0;
+   checks.push({
+     id: 'pe_ratio_positive',
+@@ -177,15 +164,15 @@ export function runStockHealthChecks(inputs: HealthCheckInputs): StockHealthChec
+     name: 'DCF_Price > 0',
+     category: 'التقييم',
+     order: 8,
+-    status: isDcfPositive ? 'pass' : 'fail',
++    status: isDcfPositive ? 'pass' : 'warning',
+     actualValue:
+       engineOutputs.dcfValue !== null && engineOutputs.dcfValue > 0
+         ? `${engineOutputs.dcfValue.toFixed(2)} ج.م`
+         : 'غير متاح أو سالب',
+     expectedRule: '[DCF_Intrinsic_Price] > 0',
+     detailsAr: isDcfPositive
+-      ? 'نموذج التدفقات النقدية المخصومة أنتج قيمة عادلة موجبة وموثوقة.'
+-      : 'نموذج DCF لم يتمكن من استنتاج قيمة موجبة نظراً لسلبية التدفقات أو تضخم الديون.',
++      ? 'نموذج التدفقات النقدية المخصومة أنتج قيمة موجبة وفق الافتراضات المدخلة.'
++      : 'DCF غير متاح أو غير مناسب؛ راجع سبب الاستبعاد ومدخلات FCFF.',
+   });
+ 
+   // 9. بيانات يومية نظيفة (البعد: الاكتمال)
+diff --git a/old/src/core/math/valuation.ts b/new/src/core/math/valuation.ts
+index 412d75d..ef62770 100644
+--- a/old/src/core/math/valuation.ts
++++ b/new/src/core/math/valuation.ts
+@@ -20,12 +20,20 @@ export interface ValuationEngineInputs {
+   dpsCurrent: number | null;
+   sector: string;
+   sectorPE?: number;
++  sectorPB?: number;
++  fcffTTM?: number | null;
+ }
+ 
++export interface DcfDetails {
++  baseFcff:number; wacc:number; terminalGrowth:number; netDebt:number;
++  years:{year:number; growth:number; fcff:number; discountFactor:number; presentValue:number}[];
++  enterpriseValue:number; equityValue:number; terminalValue:number; presentTerminalValue:number;
++}
+ export interface EngineOutputs {
++  dcfDetails: DcfDetails | null;
+   betaAdjusted: number;
+   costOfEquity: number;
+-  wacc: number;
++  wacc: number | null;
+   epsTTM: number | null;
+   bvps: number | null;
+   roe: number | null;
+@@ -34,9 +42,11 @@ export interface EngineOutputs {
+   rimValue: number | null;
+   relativeValue: number | null;
+   grahamValue: number | null;
+-  compositeFairValue: number;
+-  marginOfSafetyPct: number;
+-  upsidePotentialPct: number;
++  weights: { dcf:number; ddm:number; rim:number; relative:number; graham:number };
++  modelNotes: string[];
++  compositeFairValue: number | null;
++  marginOfSafetyPct: number | null;
++  upsidePotentialPct: number | null;
+ }
+ 
+ export function computeComprehensiveValuation(
+@@ -46,7 +56,8 @@ export function computeComprehensiveValuation(
+   const getParam = (key: string, defaultVal: number) =>
+     paramsMap[key] !== undefined ? paramsMap[key] : defaultVal;
+ 
+-  const shares = inputs.sharesOutstanding > 0 ? inputs.sharesOutstanding : 1;
++  const shares = Number.isFinite(inputs.sharesOutstanding) && inputs.sharesOutstanding > 0 ? inputs.sharesOutstanding : NaN;
++  const modelNotes: string[] = [];
+   const taxRate = getParam('TaxRate', 0.225);
+   const rfEG = getParam('Rf_Egypt_10Y', 0.251);
+   const erp = getParam('ERP_Developed', 0.0421);
+@@ -60,7 +71,7 @@ export function computeComprehensiveValuation(
+   const terminalGrowth = getParam('Terminal_Growth', 0.05);
+ 
+   // 1. Blume-adjusted Beta: 0.67 * betaRaw + 0.33 * 1.00
+-  const betaAdjusted = rawWeight * (inputs.betaRaw || 1.0) + (1 - rawWeight) * betaAnchor;
++  const betaAdjusted = rawWeight * (inputs.betaRaw ?? 1.0) + (1 - rawWeight) * betaAnchor;
+ 
+   // 2. Cost of Equity (Ke)
+   let costOfEquity: number;
+@@ -77,30 +88,33 @@ export function computeComprehensiveValuation(
+   }
+ 
+   // 3. WACC
+-  const totalDebt = inputs.totalDebt || 0;
+-  const totalEquity = inputs.totalEquity || (inputs.marketPrice * shares);
+-  const totalCapital = totalDebt + totalEquity;
+-  const we = totalCapital > 0 ? totalEquity / totalCapital : 0.8;
+-  const wd = totalCapital > 0 ? totalDebt / totalCapital : 0.2;
++  const totalDebt = inputs.totalDebt;
++  const totalEquity = inputs.marketPrice * shares; // Market capitalization for WACC weights.
+   const afterTaxKd = costOfDebt * (1 - taxRate);
+-  const wacc = Math.max(terminalGrowth + 0.015, we * costOfEquity + wd * afterTaxKd);
++  const capitalValid = totalDebt !== null && Number.isFinite(totalDebt) && totalDebt >= 0 && Number.isFinite(totalEquity) && totalEquity > 0;
++  const waccKe = waccMode === 1 ? rfEG + betaAdjusted*erp + lambda*crp
++    : waccMode === 2 ? rfEG + betaAdjusted*erp
++    : waccMode === 3 ? getParam('Rf_USD_10Y',.049) + betaAdjusted*erp + lambda*crp : null;
++  const wacc = waccKe !== null && waccKe > 0 && capitalValid && taxRate >= 0 && taxRate <= 1 && costOfDebt >= 0 && Number.isFinite(costOfEquity) && Number.isFinite(afterTaxKd)
++    ? (totalEquity * waccKe + totalDebt * afterTaxKd) / (totalEquity + totalDebt) : null;
+ 
+   // 4. Fundamental Ratios
+-  const epsTTM = inputs.netIncomeTTM !== null ? inputs.netIncomeTTM / shares : null;
+-  const bvps = inputs.totalEquity !== null && inputs.totalEquity > 0 ? inputs.totalEquity / shares : null;
++  const epsTTM = inputs.netIncomeTTM !== null && Number.isFinite(shares) ? inputs.netIncomeTTM / shares : null;
++  const bvps = inputs.totalEquity !== null && inputs.totalEquity > 0 && Number.isFinite(shares) ? inputs.totalEquity / shares : null;
+   const roe = inputs.netIncomeTTM !== null && inputs.totalEquity !== null && inputs.totalEquity > 0
+     ? inputs.netIncomeTTM / inputs.totalEquity
+     : null;
+ 
+-  const netDebt = (inputs.totalDebt || 0) - (inputs.cash || 0);
++  const netDebt = inputs.totalDebt !== null && inputs.cash !== null && Number.isFinite(inputs.cash) && inputs.cash >= 0 ? inputs.totalDebt - inputs.cash : null;
+ 
+   // 5. Model 1: DCF
+   let dcfValue: number | null = null;
+-  const baseFcf = inputs.fcfTTM !== null && inputs.fcfTTM > 0
+-    ? inputs.fcfTTM
+-    : (inputs.netIncomeTTM !== null && inputs.netIncomeTTM > 0 ? inputs.netIncomeTTM * 0.75 : null);
+-
+-  if (baseFcf !== null && baseFcf > 0) {
++  let dcfDetails: DcfDetails | null = null;
++  const financialSector = /بنوك|بنك|مالية|bank|financial|insurance|تأمين/i.test(inputs.sector);
++  const baseFcf = inputs.fcffTTM ?? null;
++  if (financialSector) modelNotes.push('DCF للشركة المالية مستبعد؛ يلزم نموذج مناسب لطبيعة نشاطها.');
++  else if (baseFcf === null) modelNotes.push('DCF غير متاح: FCFF موثق غير متوفر؛ لا يُستبدل بصافي الربح أو FCF.');
++  if (!financialSector && waccMode !== 3 && baseFcf !== null && baseFcf > 0 && netDebt !== null && Number.isFinite(shares) && wacc !== null && wacc > terminalGrowth && wacc > 0 && terminalGrowth > -1) {
+     const growthRates = [
+       getParam('Growth_Y1', 0.50),
+       getParam('Growth_Y2', 0.40),
+@@ -109,12 +123,14 @@ export function computeComprehensiveValuation(
+       getParam('Growth_Y5', 0.15),
+     ];
+ 
++    const years: DcfDetails['years'] = [];
+     let pvSum = 0;
+     let currentFcf = baseFcf;
+     for (let t = 1; t <= 5; t++) {
+-      currentFcf *= (1 + (growthRates[t - 1] || 0.15));
++      currentFcf *= (1 + (growthRates[t - 1] ?? 0.15));
+       const df = Math.pow(1 + wacc, t);
+       pvSum += currentFcf / df;
++      years.push({year:t, growth:growthRates[t-1], fcff:currentFcf, discountFactor:1/df, presentValue:currentFcf/df});
+     }
+ 
+     // Terminal Value
+@@ -122,7 +138,18 @@ export function computeComprehensiveValuation(
+     const pvTv = tv / Math.pow(1 + wacc, 5);
+     const enterpriseValue = pvSum + pvTv;
+     const equityVal = enterpriseValue - netDebt;
+-    dcfValue = Math.max(0, equityVal / shares);
++    if ([enterpriseValue,equityVal,tv,pvTv].every(Number.isFinite) && years.every(y => Number.isFinite(y.fcff) && y.growth > -1)) {
++      dcfValue = Math.max(0, equityVal / shares);
++      dcfDetails = {baseFcff:baseFcf,wacc,terminalGrowth,netDebt,years,enterpriseValue,equityValue:equityVal,terminalValue:tv,presentTerminalValue:pvTv};
++    }
++  }
++
++  if (!financialSector && dcfValue === null) {
++    if (waccMode === 3) modelNotes.push('DCF مستبعد: التدفقات بالجنيه ومعدل WACC بالدولار؛ يلزم تحويل متسق للعملة.');
++    if (wacc === null) modelNotes.push('WACC غير متاح: يلزم دين موثق وقيمة سوقية موجبة.');
++    if (netDebt === null) modelNotes.push('صافي الدين غير متاح: يلزم تسجيل الدين والنقد، ولو صفراً.');
++    if (baseFcf !== null && baseFcf <= 0) modelNotes.push('FCFF غير موجب؛ نموذج الإسقاط الحالي لا يعالج التحول من التدفقات السالبة.');
++    if (wacc !== null && wacc <= terminalGrowth) modelNotes.push('DCF مستبعد: يجب أن يكون WACC أعلى من النمو النهائي.');
+   }
+ 
+   // 6. Model 2: DDM (Gordon Growth)
+@@ -135,30 +162,31 @@ export function computeComprehensiveValuation(
+ 
+   // 7. Model 3: RIM (Residual Income Model)
+   let rimValue: number | null = null;
+-  if (bvps !== null && bvps > 0) {
+-    const currentRoe = roe !== null ? roe : 0.25;
++  if (bvps !== null && bvps > 0 && roe !== null && costOfEquity > 0) {
++    const currentRoe = roe;
+     let pvRiSum = 0;
+     let projBvps = bvps;
+     for (let t = 1; t <= 5; t++) {
+       const residualIncome = (currentRoe - costOfEquity) * projBvps;
+       const df = Math.pow(1 + costOfEquity, t);
+       pvRiSum += residualIncome / df;
+-      projBvps *= (1 + currentRoe * 0.5); // 50% retention
++      projBvps *= (1 + currentRoe * getParam('RIM_Retention', 0.5)); // 50% retention
+     }
+     const terminalRi = ((currentRoe - costOfEquity) * projBvps) / costOfEquity;
+     const pvTerminalRi = terminalRi / Math.pow(1 + costOfEquity, 5);
+-    rimValue = Math.max(bvps * 0.5, bvps + pvRiSum + pvTerminalRi);
++    rimValue = Math.max(0, bvps + pvRiSum + pvTerminalRi);
+   }
+ 
+   // 8. Model 4: Relative Valuation
+   let relativeValue: number | null = null;
+-  const sectorPe = inputs.sectorPE || 7.0;
+-  if (epsTTM !== null && epsTTM > 0) {
++  const sectorPe = inputs.sectorPE ?? 0;
++  const sectorPb = inputs.sectorPB ?? 0;
++  if (epsTTM !== null && epsTTM > 0 && sectorPe > 0) {
+     const peImplied = epsTTM * sectorPe;
+-    const pbImplied = bvps !== null && bvps > 0 ? bvps * 1.8 : peImplied;
++    const pbImplied = bvps !== null && bvps > 0 && sectorPb > 0 ? bvps * sectorPb : peImplied;
+     relativeValue = (peImplied * 0.6) + (pbImplied * 0.4);
+-  } else if (bvps !== null && bvps > 0) {
+-    relativeValue = bvps * 1.8;
++  } else if (bvps !== null && bvps > 0 && sectorPb > 0) {
++    relativeValue = bvps * sectorPb;
+   }
+ 
+   // 9. Model 5: Graham
+@@ -168,11 +196,11 @@ export function computeComprehensiveValuation(
+   }
+ 
+   // 10. Composite Fair Value with Dynamic Weights
+-  const wDCF = getParam('Weight_DCF', 0.30);
+-  const wDDM = getParam('Weight_DDM', 0.15);
+-  const wRelative = getParam('Weight_Relative', 0.25);
+-  const wGraham = getParam('Weight_Graham', 0.15);
+-  const wRIM = getParam('Weight_RIM', 0.15);
++  const wDCF = Math.max(0, getParam('Weight_DCF', 0.30));
++  const wDDM = Math.max(0, getParam('Weight_DDM', 0.15));
++  const wRelative = Math.max(0, getParam('Weight_Relative', 0.25));
++  const wGraham = Math.max(0, getParam('Weight_Graham', 0.15));
++  const wRIM = Math.max(0, getParam('Weight_RIM', 0.15));
+ 
+   let activeWeightSum = 0;
+   if (dcfValue !== null) activeWeightSum += wDCF;
+@@ -181,7 +209,7 @@ export function computeComprehensiveValuation(
+   if (relativeValue !== null) activeWeightSum += wRelative;
+   if (grahamValue !== null) activeWeightSum += wGraham;
+ 
+-  let compositeFairValue = 0;
++  let compositeFairValue: number | null = 0;
+   if (activeWeightSum > 0) {
+     if (dcfValue !== null) compositeFairValue += dcfValue * (wDCF / activeWeightSum);
+     if (ddmValue !== null) compositeFairValue += ddmValue * (wDDM / activeWeightSum);
+@@ -189,18 +217,28 @@ export function computeComprehensiveValuation(
+     if (relativeValue !== null) compositeFairValue += relativeValue * (wRelative / activeWeightSum);
+     if (grahamValue !== null) compositeFairValue += grahamValue * (wGraham / activeWeightSum);
+   } else {
+-    compositeFairValue = inputs.marketPrice;
++    compositeFairValue = null;
++    modelNotes.push('لا توجد نماذج صالحة بأوزان موجبة لحساب قيمة عادلة.');
+   }
+ 
+-  const marginOfSafetyPct = compositeFairValue > 0
++  const marginOfSafetyPct = compositeFairValue !== null && compositeFairValue > 0
+     ? ((compositeFairValue - inputs.marketPrice) / compositeFairValue) * 100
+-    : 0;
++    : null;
+ 
+-  const upsidePotentialPct = inputs.marketPrice > 0
++  const upsidePotentialPct = compositeFairValue !== null && inputs.marketPrice > 0
+     ? ((compositeFairValue - inputs.marketPrice) / inputs.marketPrice) * 100
+-    : 0;
++    : null;
+ 
+   return {
++    dcfDetails,
++    modelNotes,
++    weights: {
++      dcf: dcfValue !== null && activeWeightSum > 0 ? wDCF / activeWeightSum * 100 : 0,
++      ddm: ddmValue !== null && activeWeightSum > 0 ? wDDM / activeWeightSum * 100 : 0,
++      rim: rimValue !== null && activeWeightSum > 0 ? wRIM / activeWeightSum * 100 : 0,
++      relative: relativeValue !== null && activeWeightSum > 0 ? wRelative / activeWeightSum * 100 : 0,
++      graham: grahamValue !== null && activeWeightSum > 0 ? wGraham / activeWeightSum * 100 : 0,
++    },
+     betaAdjusted,
+     costOfEquity,
+     wacc,
+diff --git a/old/src/modules/admin/AdminDashboard.tsx b/new/src/modules/admin/AdminDashboard.tsx
+index 034a62c..9044ba8 100644
+--- a/old/src/modules/admin/AdminDashboard.tsx
++++ b/new/src/modules/admin/AdminDashboard.tsx
+@@ -24,7 +24,7 @@ import { DEFAULT_MACRO_PARAMETERS, DEFAULT_SECTOR_PE } from '../../core/constant
+ 
+ interface AdminDashboardProps {
+   macroParams: MacroParameter[];
+-  onSaveMacroParams: (params: MacroParameter[]) => void;
++  onSaveMacroParams: (params: MacroParameter[]) => Promise<void>;
+   sectorPEMap: Record<string, number>;
+   onSaveSectorPE: (peMap: Record<string, number>) => void;
+   users: AppUser[];
+@@ -71,8 +71,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+     );
+   };
+ 
+-  const handleSaveAllParams = () => {
+-    onSaveMacroParams(editableParams);
++  const handleSaveAllParams = async () => {
++    try { await onSaveMacroParams(editableParams); } catch { return; }
+     setSaveParamNotice(true);
+     setTimeout(() => setSaveParamNotice(false), 3000);
+   };
+@@ -80,7 +80,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+   const handleResetDefaultParams = () => {
+     if (window.confirm('هل تريد استعادة القيم القياسية الافتراضية للمتغيرات الكلية الـ 29؟')) {
+       setEditableParams(DEFAULT_MACRO_PARAMETERS);
+-      onSaveMacroParams(DEFAULT_MACRO_PARAMETERS);
++      void onSaveMacroParams(DEFAULT_MACRO_PARAMETERS).catch(() => {});
+     }
+   };
+ 
+@@ -98,7 +98,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+ 
+     const updated = [...editableParams, newParam];
+     setEditableParams(updated);
+-    onSaveMacroParams(updated);
++    void onSaveMacroParams(updated).catch(() => {});
+     setIsAddParamModalOpen(false);
+     setNewParamKey('');
+     setNewParamNameAr('');
+diff --git a/old/src/modules/data-hub/DataHubView.tsx b/new/src/modules/data-hub/DataHubView.tsx
+index 01e5141..f188d30 100644
+--- a/old/src/modules/data-hub/DataHubView.tsx
++++ b/new/src/modules/data-hub/DataHubView.tsx
+@@ -35,7 +35,7 @@ import { HealthBadge } from '../../shared/ui/HealthBadge';
+ import { ConfirmDeleteModal } from '../../shared/ui/ConfirmDeleteModal';
+ import { EditQuarterlyRecordModal } from './EditQuarterlyRecordModal';
+ import { EditDailyRecordModal } from './EditDailyRecordModal';
+-import { downloadExcelTemplate } from '../../utils/excelExport';
++import { downloadQuarterlyFcffTemplate } from '../../utils/excelExport';
+ 
+ interface DataHubViewProps {
+   selectedTicker: string;
+@@ -83,7 +83,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+   // Filter records for selected ticker
+   const stockQuarterly = quarterlyRecords.filter((q) => q.ticker === selectedTicker);
+   const stockDaily = dailyRecords.filter((d) => d.ticker === selectedTicker);
+-  const latestDaily = stockDaily[stockDaily.length - 1];
++  const latestDaily = [...stockDaily].sort((a,b) => b.tradeDate.localeCompare(a.tradeDate))[0];
+ 
+   const handleDailyFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+@@ -92,13 +92,13 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+     try {
+       const { date, records } = await parseDailyTradingExcelFile(file);
+       if (records.length > 0) {
+-        onImportDailyRecords(records, date);
++        await onImportDailyRecords(records, date);
+         setDailyUploadMsg(`تم استيراد ${records.length} شركة لتاريخ تداول (${date}) بنجاح!`);
+       } else {
+         setDailyUploadMsg('لم يتم العثور على أسطر صالحة في ملف التداول اليومي.');
+       }
+     } catch (err) {
+-      setDailyUploadMsg('حدث خطأ أثناء قراءة ملف التداول اليومي. تحقق من الأعمدة الـ 40.');
++      setDailyUploadMsg(err instanceof Error ? err.message : 'تعذر الاستيراد أو الحفظ.');
+     }
+     setTimeout(() => setDailyUploadMsg(null), 6000);
+   };
+@@ -110,25 +110,29 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+     try {
+       const records = await parseQuarterlyFinancialsExcelFile(file);
+       if (records.length > 0) {
+-        onImportQuarterlyRecords(records);
++        await onImportQuarterlyRecords(records);
+         setQuarterlyUploadMsg(`تم استيراد وتحديث ${records.length} فترة ربع سنوية بنجاح!`);
+       } else {
+         setQuarterlyUploadMsg('لم يتم العثور على أسطر في ورقة "QuarterlyFinancials".');
+       }
+     } catch (err) {
+-      setQuarterlyUploadMsg('حدث خطأ أثناء قراءة ملف القوائم الربع سنوية.');
++      setQuarterlyUploadMsg(err instanceof Error ? err.message : 'تعذر الاستيراد أو الحفظ.');
+     }
+     setTimeout(() => setQuarterlyUploadMsg(null), 6000);
+   };
+ 
+-  const confirmDelete = () => {
++  const confirmDelete = async () => {
++    try {
+     if (!deleteTarget) return;
+-    onDeleteQuarterlyRecord(deleteTarget.ticker, deleteTarget.year, deleteTarget.quarter);
++    await onDeleteQuarterlyRecord(deleteTarget.ticker, deleteTarget.year, deleteTarget.quarter);
+     setDeleteTarget(null);
++    } catch (err) { setQuarterlyUploadMsg(err instanceof Error ? err.message : 'تعذر الحذف.'); }
+   };
+ 
+   return (
+     <div className="space-y-6">
++      {dailyUploadMsg && <p role="status">{dailyUploadMsg}</p>}
++      {quarterlyUploadMsg && <p role="status">{quarterlyUploadMsg}</p>}
+       {/* 1. Header Banner */}
+       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+@@ -146,7 +150,7 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+ 
+           <div className="flex items-center gap-2 shrink-0">
+             <button
+-              onClick={downloadExcelTemplate}
++              onClick={downloadQuarterlyFcffTemplate}
+               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+             >
+               <FileSpreadsheet className="w-3.5 h-3.5 text-teal-400" />
+@@ -862,11 +866,13 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+           'تحديث حسابات متوسطات الأحجام لـ 5 و 30 و 90 يوماً.',
+           'حذف السجل نهائياً من قاعدة البيانات السحابية والكاش المحلي.',
+         ]}
+-        onConfirm={() => {
++        onConfirm={async () => {
++          try {
+           if (deleteDailyTarget && onDeleteDailyRecord) {
+-            onDeleteDailyRecord(deleteDailyTarget.ticker, deleteDailyTarget.tradeDate);
++            await onDeleteDailyRecord(deleteDailyTarget.ticker, deleteDailyTarget.tradeDate);
+           }
+           setDeleteDailyTarget(null);
++          } catch (err) { setDailyUploadMsg(err instanceof Error ? err.message : 'تعذر الحذف.'); }
+         }}
+         onCancel={() => setDeleteDailyTarget(null)}
+       />
+@@ -877,11 +883,13 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+           isOpen={true}
+           record={editingRecord}
+           onClose={() => setEditingRecord(null)}
+-          onSave={(updated) => {
++          onSave={async (updated) => {
++            try {
+             if (onUpdateQuarterlyRecord) {
+-              onUpdateQuarterlyRecord(updated);
++              await onUpdateQuarterlyRecord(updated);
+             }
+             setEditingRecord(null);
++            } catch (err) { setQuarterlyUploadMsg(err instanceof Error ? err.message : 'تعذر الحفظ.'); }
+           }}
+         />
+       )}
+@@ -892,11 +900,13 @@ export const DataHubView: React.FC<DataHubViewProps> = ({
+           isOpen={true}
+           record={editingDailyRecord}
+           onClose={() => setEditingDailyRecord(null)}
+-          onSave={(updated) => {
++          onSave={async (updated) => {
++            try {
+             if (onUpdateDailyRecord) {
+-              onUpdateDailyRecord(updated);
++              await onUpdateDailyRecord(updated);
+             }
+             setEditingDailyRecord(null);
++            } catch (err) { setDailyUploadMsg(err instanceof Error ? err.message : 'تعذر الحفظ.'); }
+           }}
+         />
+       )}
+diff --git a/old/src/modules/data-hub/EditDailyRecordModal.tsx b/new/src/modules/data-hub/EditDailyRecordModal.tsx
+index bf4a927..87214d1 100644
+--- a/old/src/modules/data-hub/EditDailyRecordModal.tsx
++++ b/new/src/modules/data-hub/EditDailyRecordModal.tsx
+@@ -9,9 +9,9 @@ import { DailyTradingRecord } from '../../types';
+ 
+ interface EditDailyRecordModalProps {
+   isOpen: boolean;
+-  onClose: () => void;
++  onClose: () => void | Promise<void>;
+   record: DailyTradingRecord;
+-  onSave: (updatedRecord: DailyTradingRecord) => void;
++  onSave: (updatedRecord: DailyTradingRecord) => void | Promise<void>;
+ }
+ 
+ export const EditDailyRecordModal: React.FC<EditDailyRecordModalProps> = ({
+@@ -37,13 +37,12 @@ export const EditDailyRecordModal: React.FC<EditDailyRecordModalProps> = ({
+     }
+   };
+ 
+-  const handleSubmit = (e: React.FormEvent) => {
++  const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+-    onSave({
++    await onSave({
+       ...formData,
+       updatedAt: new Date().toISOString(),
+     });
+-    onClose();
+   };
+ 
+   return (
+diff --git a/old/src/modules/data-hub/EditQuarterlyRecordModal.tsx b/new/src/modules/data-hub/EditQuarterlyRecordModal.tsx
+index a3dc2df..52bf0ae 100644
+--- a/old/src/modules/data-hub/EditQuarterlyRecordModal.tsx
++++ b/new/src/modules/data-hub/EditQuarterlyRecordModal.tsx
+@@ -1,3 +1,4 @@
++import { FcffInputs } from '../../components/FcffInputs';
+ /**
+  * @license
+  * SPDX-License-Identifier: Apache-2.0
+@@ -9,9 +10,9 @@ import { QuarterlyFinancialRecord } from '../../types';
+ 
+ interface EditQuarterlyRecordModalProps {
+   isOpen: boolean;
+-  onClose: () => void;
++  onClose: () => void | Promise<void>;
+   record: QuarterlyFinancialRecord;
+-  onSave: (updatedRecord: QuarterlyFinancialRecord) => void;
++  onSave: (updatedRecord: QuarterlyFinancialRecord) => void | Promise<void>;
+ }
+ 
+ export const EditQuarterlyRecordModal: React.FC<EditQuarterlyRecordModalProps> = ({
+@@ -35,13 +36,12 @@ export const EditQuarterlyRecordModal: React.FC<EditQuarterlyRecordModalProps> =
+     }
+   };
+ 
+-  const handleSubmit = (e: React.FormEvent) => {
++  const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+-    onSave({
++    await onSave({
+       ...formData,
+       updatedAt: new Date().toISOString(),
+     });
+-    onClose();
+   };
+ 
+   return (
+@@ -74,6 +74,7 @@ export const EditQuarterlyRecordModal: React.FC<EditQuarterlyRecordModalProps> =
+ 
+         {/* Modal Body (Scrollable Form) */}
+         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-6">
++          <FcffInputs record={formData} onChange={updates => setFormData(prev => ({...prev,...updates}))} />
+           
+           <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-xs text-emerald-300 flex items-center gap-2">
+             <AlertCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+diff --git a/old/src/services/firebase/firestoreService.ts b/new/src/services/firebase/firestoreService.ts
+index a6fee31..2d6917c 100644
+--- a/old/src/services/firebase/firestoreService.ts
++++ b/new/src/services/firebase/firestoreService.ts
+@@ -17,7 +17,8 @@ import {
+   writeBatch,
+   Unsubscribe,
+ } from 'firebase/firestore';
+-import { db, handleFirestoreError, OperationType } from './firebaseConfig';
++import { db, app, handleFirestoreError, OperationType } from './firebaseConfig';
++import { getFunctions, httpsCallable } from 'firebase/functions';
+ import {
+   Company,
+   DecisionItem,
+@@ -62,31 +63,27 @@ const CACHE_KEYS = {
+ export const COLLECTIONS = {
+   COMPANIES: 'companies',
+   FINANCIALS: 'financials',
+-  STORIES: 'investmentStories',
++  STORIES: 'stories',
+   DECISIONS: 'decisions',
+-  TRADES: 'tradeLogs',
+-  MACRO_PARAMS: 'macroParameters',
++  TRADES: 'trades',
++  MACRO_PARAMS: 'macro_params',
+   SECTOR_PE: 'sectorPE',
+-  DAILY_TRADING: 'dailyTrading',
+-  QUARTERLY_RECORDS: 'quarterlyRecords',
+-  USERS: 'appUsers',
++  DAILY_TRADING: 'daily_trading_records',
++  QUARTERLY_RECORDS: 'quarterly_financial_records',
++  USERS: 'users',
+ } as const;
+ 
+ /**
+  * Sanitizes object by removing undefined keys before passing to Firestore
+  */
+ function sanitizeForFirestore<T extends Record<string, any>>(obj: T): Record<string, any> {
+-  const clean: Record<string, any> = {};
+-  for (const [key, val] of Object.entries(obj)) {
+-    if (val !== undefined) {
+-      if (val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+-        clean[key] = sanitizeForFirestore(val);
+-      } else {
+-        clean[key] = val;
+-      }
+-    }
+-  }
+-  return clean;
++  const clean = (value: any): any => {
++    if (Array.isArray(value)) return value.map(v => v === undefined ? null : clean(v));
++    if (value !== null && typeof value === 'object' && !(value instanceof Date))
++      return Object.fromEntries(Object.entries(value).filter(([,v]) => v !== undefined).map(([k,v]) => [k,clean(v)]));
++    return value;
++  };
++  return clean(obj);
+ }
+ 
+ export interface SyncStats {
+@@ -98,6 +95,24 @@ export interface SyncStats {
+ }
+ 
+ export class FirestoreService {
++  private static async financialWrite(operationType: string, data?: unknown, extra: Record<string, unknown> = {}): Promise<void> {
++    const call = httpsCallable(getFunctions(app, 'us-central1'), 'updateFinancialData');
++    const result = await call({ operationType, ...(data === undefined ? {} : { data: sanitizeForFirestore({ value: data }).value }), ...extra });
++    if (!(result.data as { success?: boolean })?.success) throw new Error('لم يؤكد الخادم حفظ البيانات.');
++  }
++
++  private static async bulkFinancialWrite(operationType: string, records: unknown[]): Promise<void> {
++    let saved = 0;
++    try {
++      for (let i = 0; i < records.length; i += 200) {
++        await this.financialWrite(operationType, records.slice(i, i + 200));
++        saved += Math.min(200, records.length - i);
++      }
++    } catch (error) {
++      throw new Error(`حُفظ ${saved} من ${records.length} سجلاً. أعد المزامنة قبل المحاولة. ${error instanceof Error ? error.message : ''}`);
++    }
++  }
++
+   private static activeListeners: Unsubscribe[] = [];
+   private static lastSyncStats: SyncStats = {
+     lastSyncAt: localStorage.getItem(CACHE_KEYS.LAST_SYNC) || new Date().toISOString(),
+@@ -108,7 +123,7 @@ export class FirestoreService {
+   };
+ 
+   // ==========================================
+-  // 1. SYNC & DELTA TRACKING (Zero-Reads Engine)
++  // 1. SYNC & DELTA TRACKING (Incremental Sync Engine)
+   // ==========================================
+ 
+   public static getLastSyncTimestamp(): string {
+@@ -127,7 +142,7 @@ export class FirestoreService {
+   /**
+    * Smart Incremental Delta Query:
+    * Only queries documents modified strictly AFTER lastSyncTimestamp.
+-   * If no documents were modified, Firestore returns 0 documents (Zero billable reads).
++   * If no documents were modified, Firestore returns 0 documents (No changed documents returned; this does not imply zero billing).
+    */
+   public static async fetchIncrementalDelta<T extends Record<string, any>>(
+     collectionName: string,
+@@ -147,7 +162,7 @@ export class FirestoreService {
+       return { updated, count: updated.length };
+     } catch (error) {
+       console.warn(`Delta query warning for ${collectionName}:`, error);
+-      return { updated: [], count: 0 };
++      throw error;
+     }
+   }
+ 
+@@ -156,7 +171,7 @@ export class FirestoreService {
+    */
+   public static async syncAllIncrementalDeltas(): Promise<SyncStats> {
+     this.lastSyncStats.status = 'syncing';
+-    this.lastSyncStats.messageAr = 'جارٍ فحص التحديثات التزايدية (Zero-Reads)...';
++    this.lastSyncStats.messageAr = 'جارٍ فحص التحديثات التزايدية (Incremental Sync)...';
+ 
+     let totalUpdated = 0;
+     const nowIso = new Date().toISOString();
+@@ -278,18 +293,27 @@ export class FirestoreService {
+     onDecisions?: (decisions: Record<string, DecisionItem>) => void;
+     onTrades?: (trades: TradeLog[]) => void;
+     onMacroParams?: (params: MacroParameter[]) => void;
++    onSectorPE?: (values: Record<string, number>) => void;
+     onDailyTrading?: (records: DailyTradingRecord[]) => void;
+     onQuarterlyRecords?: (records: QuarterlyFinancialRecord[]) => void;
+   }): () => void {
+     this.unsubscribeAll();
+ 
+     try {
++      if (handlers.onSectorPE) {
++        const unsub = onSnapshot(collection(db, COLLECTIONS.SECTOR_PE), snapshot => {
++          const values: Record<string,number> = {};
++          snapshot.forEach(d => { if (Number.isFinite(d.data().value)) values[d.id] = d.data().value; });
++          handlers.onSectorPE?.(values);
++        }, err => console.warn('Sector multiples sync failed:', err.message));
++        this.activeListeners.push(unsub);
++      }
+       // 1. Companies Listener
+       if (handlers.onCompanies) {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.COMPANIES),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const list: Company[] = [];
+               snapshot.forEach((d) => list.push({ ...d.data(), id: d.id } as Company));
+               this.setCachedCompanies(list);
+@@ -306,7 +330,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.FINANCIALS),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const list: QuarterlyFinancial[] = [];
+               snapshot.forEach((d) => list.push({ ...d.data(), id: d.id } as QuarterlyFinancial));
+               this.setCachedFinancials(list);
+@@ -323,7 +347,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.STORIES),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const map: Record<string, InvestmentStory> = {};
+               snapshot.forEach((d) => {
+                 const item = d.data() as InvestmentStory;
+@@ -343,7 +367,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.DECISIONS),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const map: Record<string, DecisionItem> = {};
+               snapshot.forEach((d) => {
+                 const item = d.data() as DecisionItem;
+@@ -363,7 +387,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.TRADES),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const list: TradeLog[] = [];
+               snapshot.forEach((d) => list.push({ ...d.data(), id: d.id } as TradeLog));
+               this.setCachedTrades(list);
+@@ -380,7 +404,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.MACRO_PARAMS),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const list: MacroParameter[] = [];
+               snapshot.forEach((d) => list.push({ ...d.data(), key: d.id } as MacroParameter));
+               this.setCachedMacroParameters(list);
+@@ -397,7 +421,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.QUARTERLY_RECORDS),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const list: QuarterlyFinancialRecord[] = [];
+               snapshot.forEach((d) => list.push({ ...d.data() } as QuarterlyFinancialRecord));
+               this.setCachedQuarterlyRecords(list);
+@@ -414,7 +438,7 @@ export class FirestoreService {
+         const unsub = onSnapshot(
+           collection(db, COLLECTIONS.DAILY_TRADING),
+           (snapshot) => {
+-            if (!snapshot.empty) {
++            {
+               const list: DailyTradingRecord[] = [];
+               snapshot.forEach((d) => list.push({ ...d.data() } as DailyTradingRecord));
+               this.setCachedDailyTradingRecords(list);
+@@ -490,6 +514,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getAllCompanies fallback to cache', e);
++      throw e;
+     }
+     return this.getCachedCompanies();
+   }
+@@ -534,7 +559,8 @@ export class FirestoreService {
+       }
+       await batch.commit();
+     } catch (e) {
+-      console.warn('Firestore bulkSaveCompanies fallback to local cache', e);
++      console.warn('Firestore bulkSaveCompanies failed', e);
++      throw e;
+     }
+   }
+ 
+@@ -553,6 +579,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.FINANCIALS, docId), payload);
+     } catch (e) {
+       console.warn('Firestore createFinancial fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedFinancials();
+     this.setCachedFinancials([...current.filter((f) => f.id !== docId), financial]);
+@@ -570,6 +597,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getAllFinancials fallback to cache', e);
++      throw e;
+     }
+     return this.getCachedFinancials();
+   }
+@@ -584,6 +612,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.FINANCIALS, docId), payload, { merge: true });
+     } catch (e) {
+       console.warn('Firestore updateFinancial fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedFinancials();
+     this.setCachedFinancials(current.map((f) => (f.id === docId ? financial : f)));
+@@ -594,6 +623,7 @@ export class FirestoreService {
+       await deleteDoc(doc(db, COLLECTIONS.FINANCIALS, id));
+     } catch (e) {
+       console.warn('Firestore deleteFinancial fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedFinancials();
+     this.setCachedFinancials(current.filter((f) => f.id !== id));
+@@ -618,7 +648,8 @@ export class FirestoreService {
+         await batch.commit();
+       }
+     } catch (e) {
+-      console.warn('Firestore bulkSaveFinancials fallback to local cache', e);
++      console.warn('Firestore bulkSaveFinancials failed', e);
++      throw e;
+     }
+   }
+ 
+@@ -634,6 +665,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getStory fallback to cache', e);
++      throw e;
+     }
+     const cached = this.getCachedStories();
+     return cached[companyId] || null;
+@@ -652,6 +684,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getAllStories fallback to cache', e);
++      throw e;
+     }
+     return this.getCachedStories();
+   }
+@@ -666,6 +699,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.STORIES, docId), payload, { merge: true });
+     } catch (e) {
+       console.warn('Firestore saveStory fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedStories();
+     current[docId] = story;
+@@ -677,6 +711,7 @@ export class FirestoreService {
+       await deleteDoc(doc(db, COLLECTIONS.STORIES, companyId));
+     } catch (e) {
+       console.warn('Firestore deleteStory fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedStories();
+     delete current[companyId];
+@@ -695,6 +730,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getDecision fallback to cache', e);
++      throw e;
+     }
+     const cached = this.getCachedDecisions();
+     return cached[companyId] || null;
+@@ -713,6 +749,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getAllDecisions fallback to cache', e);
++      throw e;
+     }
+     return this.getCachedDecisions();
+   }
+@@ -727,6 +764,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.DECISIONS, docId), payload, { merge: true });
+     } catch (e) {
+       console.warn('Firestore saveDecision fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedDecisions();
+     current[docId] = decision;
+@@ -738,6 +776,7 @@ export class FirestoreService {
+       await deleteDoc(doc(db, COLLECTIONS.DECISIONS, companyId));
+     } catch (e) {
+       console.warn('Firestore deleteDecision fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedDecisions();
+     delete current[companyId];
+@@ -759,6 +798,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.TRADES, docId), payload);
+     } catch (e) {
+       console.warn('Firestore createTrade fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedTrades();
+     this.setCachedTrades([trade, ...current.filter((t) => t.id !== docId)]);
+@@ -776,6 +816,7 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getAllTrades fallback to cache', e);
++      throw e;
+     }
+     return this.getCachedTrades();
+   }
+@@ -790,6 +831,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.TRADES, docId), payload, { merge: true });
+     } catch (e) {
+       console.warn('Firestore updateTrade fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedTrades();
+     this.setCachedTrades(current.map((t) => (t.id === docId ? trade : t)));
+@@ -800,6 +842,7 @@ export class FirestoreService {
+       await deleteDoc(doc(db, COLLECTIONS.TRADES, id));
+     } catch (e) {
+       console.warn('Firestore deleteTrade fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedTrades();
+     this.setCachedTrades(current.filter((t) => t.id !== id));
+@@ -819,6 +862,7 @@ export class FirestoreService {
+       await batch.commit();
+     } catch (e) {
+       console.warn('Firestore bulkSaveTrades fallback to cache', e);
++      throw e;
+     }
+   }
+ 
+@@ -837,10 +881,20 @@ export class FirestoreService {
+       }
+     } catch (e) {
+       console.warn('Firestore getAllMacroParameters fallback to cache', e);
++      throw e;
+     }
+     return this.getCachedMacroParameters();
+   }
+ 
++  public static async saveSectorPE(values: Record<string, number>): Promise<void> {
++    const batch = writeBatch(db);
++    for (const [key, value] of Object.entries(values)) {
++      if (!Number.isFinite(value) || value <= 0 || key.includes('/')) throw new Error('مضاعف قطاع غير صالح.');
++      batch.set(doc(db, COLLECTIONS.SECTOR_PE, key), { value, updatedAt:new Date().toISOString() });
++    }
++    await batch.commit();
++  }
++
+   public static async saveMacroParameter(param: MacroParameter): Promise<void> {
+     const docId = param.key;
+     const payload = sanitizeForFirestore({
+@@ -851,6 +905,7 @@ export class FirestoreService {
+       await setDoc(doc(db, COLLECTIONS.MACRO_PARAMS, docId), payload, { merge: true });
+     } catch (e) {
+       console.warn('Firestore saveMacroParameter fallback to cache', e);
++      throw e;
+     }
+     const current = this.getCachedMacroParameters();
+     const updated = current.map((p) => (p.key === docId ? param : p));
+@@ -871,6 +926,7 @@ export class FirestoreService {
+       await batch.commit();
+     } catch (e) {
+       console.warn('Firestore bulkSaveMacroParameters fallback to cache', e);
++      throw e;
+     }
+   }
+ 
+@@ -879,52 +935,15 @@ export class FirestoreService {
+   // ==========================================
+ 
+   public static async saveQuarterlyFinancialRecord(record: QuarterlyFinancialRecord): Promise<void> {
+-    const docId = `${record.ticker}_${record.year}_${record.quarter}`;
+-    const payload = sanitizeForFirestore({
+-      ...record,
+-      updatedAt: new Date().toISOString(),
+-    });
+-    try {
+-      await setDoc(doc(db, COLLECTIONS.QUARTERLY_RECORDS, docId), payload, { merge: true });
+-    } catch (e) {
+-      console.warn('Firestore saveQuarterlyFinancialRecord fallback to cache', e);
+-    }
+-    const current = this.getCachedQuarterlyRecords();
+-    const updated = [...current.filter((q) => `${q.ticker}_${q.year}_${q.quarter}` !== docId), record];
+-    this.setCachedQuarterlyRecords(updated);
++    await this.financialWrite('quarterly_record', record);
+   }
+ 
+   public static async bulkSaveQuarterlyRecords(records: QuarterlyFinancialRecord[]): Promise<void> {
+-    this.setCachedQuarterlyRecords(records);
+-    try {
+-      const chunkSize = 400;
+-      for (let i = 0; i < records.length; i += chunkSize) {
+-        const chunk = records.slice(i, i + chunkSize);
+-        const batch = writeBatch(db);
+-        for (const r of chunk) {
+-          const docId = `${r.ticker}_${r.year}_${r.quarter}`;
+-          batch.set(
+-            doc(db, COLLECTIONS.QUARTERLY_RECORDS, docId),
+-            sanitizeForFirestore({ ...r, updatedAt: new Date().toISOString() }),
+-            { merge: true }
+-          );
+-        }
+-        await batch.commit();
+-      }
+-    } catch (e) {
+-      console.warn('Firestore bulkSaveQuarterlyRecords fallback to cache', e);
+-    }
++    await this.bulkFinancialWrite('bulk_quarterly', records);
+   }
+ 
+   public static async deleteQuarterlyFinancialRecord(ticker: string, year: number, quarter: string): Promise<void> {
+-    const docId = `${ticker}_${year}_${quarter}`;
+-    try {
+-      await deleteDoc(doc(db, COLLECTIONS.QUARTERLY_RECORDS, docId));
+-    } catch (e) {
+-      console.warn('Firestore deleteQuarterlyFinancialRecord fallback to cache', e);
+-    }
+-    const current = this.getCachedQuarterlyRecords();
+-    this.setCachedQuarterlyRecords(current.filter((q) => !(q.ticker === ticker && q.year === year && q.quarter === quarter)));
++    await this.financialWrite('delete_quarterly', undefined, { ticker, year, quarter });
+   }
+ 
+   // ==========================================
+@@ -932,52 +951,15 @@ export class FirestoreService {
+   // ==========================================
+ 
+   public static async bulkSaveDailyTradingRecords(records: DailyTradingRecord[]): Promise<void> {
+-    this.setCachedDailyTradingRecords(records);
+-    try {
+-      const chunkSize = 400;
+-      for (let i = 0; i < records.length; i += chunkSize) {
+-        const chunk = records.slice(i, i + chunkSize);
+-        const batch = writeBatch(db);
+-        for (const d of chunk) {
+-          const docId = `${d.ticker}_${d.tradeDate}`;
+-          batch.set(
+-            doc(db, COLLECTIONS.DAILY_TRADING, docId),
+-            sanitizeForFirestore({ ...d, updatedAt: new Date().toISOString() }),
+-            { merge: true }
+-          );
+-        }
+-        await batch.commit();
+-      }
+-    } catch (e) {
+-      console.warn('Firestore bulkSaveDailyTradingRecords fallback to cache', e);
+-    }
++    await this.bulkFinancialWrite('bulk_daily', records);
+   }
+ 
+   public static async saveDailyTradingRecord(record: DailyTradingRecord): Promise<void> {
+-    const docId = `${record.ticker}_${record.tradeDate}`;
+-    const payload = sanitizeForFirestore({
+-      ...record,
+-      updatedAt: new Date().toISOString(),
+-    });
+-    try {
+-      await setDoc(doc(db, COLLECTIONS.DAILY_TRADING, docId), payload, { merge: true });
+-    } catch (e) {
+-      console.warn('Firestore saveDailyTradingRecord fallback to cache', e);
+-    }
+-    const current = this.getCachedDailyTradingRecords();
+-    const updated = [...current.filter((d) => `${d.ticker}_${d.tradeDate}` !== docId), record];
+-    this.setCachedDailyTradingRecords(updated);
++    await this.financialWrite('daily_record', record);
+   }
+ 
+   public static async deleteDailyTradingRecord(ticker: string, tradeDate: string): Promise<void> {
+-    const docId = `${ticker}_${tradeDate}`;
+-    try {
+-      await deleteDoc(doc(db, COLLECTIONS.DAILY_TRADING, docId));
+-    } catch (e) {
+-      console.warn('Firestore deleteDailyTradingRecord fallback to cache', e);
+-    }
+-    const current = this.getCachedDailyTradingRecords();
+-    this.setCachedDailyTradingRecords(current.filter((d) => !(d.ticker === ticker && d.tradeDate === tradeDate)));
++    await this.financialWrite('delete_daily', undefined, { ticker, tradeDate });
+   }
+ 
+   // ==========================================
+diff --git a/old/src/services/parser/excelParser.ts b/new/src/services/parser/excelParser.ts
+index a28d7e8..3418200 100644
+--- a/old/src/services/parser/excelParser.ts
++++ b/new/src/services/parser/excelParser.ts
+@@ -13,7 +13,8 @@ export function extractDateFromDailyFileName(fileName: string): string | null {
+   const year = match[1];
+   const month = match[2].padStart(2, '0');
+   const day = match[3].padStart(2, '0');
+-  return `${year}-${month}-${day}`;
++  const date = `${year}-${month}-${day}`;
++  return Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0,10) === date ? date : null;
+ }
+ 
+ // دالة تنظيف وتحويل الأرقام المحاسبية
+@@ -22,11 +23,13 @@ function parseCleanNumber(val: any): number | null {
+     return null;
+   }
+   if (typeof val === 'number') {
+-    return isNaN(val) ? null : val;
++    return Number.isFinite(val) ? val : null;
+   }
+-  const str = String(val).replace(/,/g, '').replace(/%/g, '').trim();
+-  const num = parseFloat(str);
+-  return isNaN(num) ? null : num;
++  const str = String(val).trim().replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
++    .replace(/[٬,]/g, '').replace(/٫/g, '.').replace(/%/g, '').replace(/^\((.*)\)$/, '-$1');
++  const num = Number(str);
++  if (!Number.isFinite(num)) throw new Error(`قيمة رقمية غير صالحة: ${val}`);
++  return num;
+ }
+ 
+ /**
+@@ -36,7 +39,8 @@ function parseCleanNumber(val: any): number | null {
+ export async function parseDailyTradingExcelFile(
+   file: File
+ ): Promise<{ date: string; records: DailyTradingRecord[] }> {
+-  const extractedDate = extractDateFromDailyFileName(file.name) || new Date().toISOString().split('T')[0];
++  const extractedDate = extractDateFromDailyFileName(file.name);
++  if (!extractedDate) throw new Error('اسم الملف يجب أن يحتوي تاريخ تداول صالحاً مثل 2026-11-08.xlsx.');
+   const buffer = await file.arrayBuffer();
+   const workbook = XLSX.read(buffer, { type: 'array' });
+   const firstSheetName = workbook.SheetNames[0];
+@@ -69,7 +73,7 @@ export async function parseDailyTradingExcelFile(
+     if (!tickerRaw) continue;
+ 
+     // توحيد رمز السهم (إزالة .CA إن وجدت للبحث الموحد)
+-    const cleanTicker = tickerRaw.toUpperCase();
++    const cleanTicker = tickerRaw.toUpperCase().replace(/\.CA$/, '');
+ 
+     records.push({
+       ticker: cleanTicker,
+@@ -161,6 +165,7 @@ export async function parseQuarterlyFinancialsExcelFile(
+ 
+   // الأعمدة القياسية المعروفة
+   const standardKnownColumns = new Set([
++    'DA_YTD', 'DeltaOperatingNWC_YTD', 'ValuationTaxRate', 'ValuationSource', 'FinancialUnit',
+     'الرمز', 'StockName', 'YearQuarter', 'Shares', 'IntangibleAssets', 'TotalAssets',
+     'Equity', 'TotalDebtWithoutTX', 'TotalLiabilities', 'RevenueYTD', 'GrossProfitYTD',
+     'EBIT_YTD', 'PBT_YTD', 'NetIncomeYTD', 'OCF_YTD', 'NetInvestingCF_YTD',
+@@ -172,14 +177,15 @@ export async function parseQuarterlyFinancialsExcelFile(
+     const r = rows[i];
+     if (!r || r.length === 0) continue;
+ 
+-    const ticker = String(getCol(r, 'الرمز') || '').trim().toUpperCase();
++    const ticker = String(getCol(r, 'الرمز') || '').trim().toUpperCase().replace(/\.CA$/, '');
+     const yearQuarterRaw = String(getCol(r, 'YearQuarter', 'الفترة') || '').trim();
+     if (!ticker || !yearQuarterRaw) continue;
+ 
+     // استخراج السنة والربع من YearQuarter مثل "2024Q3" أو "2024-Q3"
+-    let year = 2024;
+-    let quarter: 'Q1' | 'Q2' | 'Q3' | 'FY' = 'Q1';
+-    const yqMatch = yearQuarterRaw.match(/(\d{4})[-_/\s]*([QqFf][1-4Yy])/);
++    let year!: number;
++    let quarter!: 'Q1' | 'Q2' | 'Q3' | 'FY';
++    const yqMatch = yearQuarterRaw.match(/^(\d{4})[-_/\s]*(Q[1-4]|FY)$/i);
++    if (!yqMatch) throw new Error(`الفترة غير صالحة في الصف ${i + 1}: ${yearQuarterRaw}`);
+     if (yqMatch) {
+       year = parseInt(yqMatch[1], 10);
+       const qToken = yqMatch[2].toUpperCase();
+@@ -197,13 +203,24 @@ export async function parseQuarterlyFinancialsExcelFile(
+       }
+     });
+ 
++    const shares = parseCleanNumber(getCol(r, 'Shares'));
++    if (shares === null || shares <= 0) throw new Error(`عدد الأسهم بالمليون مطلوب في الصف ${i + 1}.`);
+     records.push({
+       ticker,
+       stockName: String(getCol(r, 'StockName', 'اسم السهم') || ticker).trim(),
+       yearQuarter: yearQuarterRaw,
+       year,
+       quarter,
+-      shares: parseCleanNumber(getCol(r, 'Shares')) || 100,
++      shares,
++      depreciationAmortizationYTD: parseCleanNumber(getCol(r, 'DA_YTD')),
++      changeOperatingNwcYTD: parseCleanNumber(getCol(r, 'DeltaOperatingNWC_YTD')),
++      valuationTaxRate: parseCleanNumber(getCol(r, 'ValuationTaxRate')),
++      valuationSource: String(getCol(r, 'ValuationSource') || '').trim() || null,
++      financialUnit: (() => {
++        const unit=String(getCol(r, 'FinancialUnit') || '').trim();
++        if (unit && unit !== 'EGP_millions') throw new Error('الوحدة المدعومة EGP_millions فقط.');
++        return unit === 'EGP_millions' ? unit : null;
++      })(),
+       intangibleAssets: parseCleanNumber(getCol(r, 'IntangibleAssets')),
+       totalAssets: parseCleanNumber(getCol(r, 'TotalAssets')),
+       equity: parseCleanNumber(getCol(r, 'Equity')),
+diff --git a/old/src/services/storage/cacheService.ts b/new/src/services/storage/cacheService.ts
+index 3aadad0..b711f07 100644
+--- a/old/src/services/storage/cacheService.ts
++++ b/new/src/services/storage/cacheService.ts
+@@ -176,7 +176,7 @@ export class CacheService {
+     } catch (e) {
+       console.error('Failed reading current user', e);
+     }
+-    return DEFAULT_ADMIN_USER;
++    return { id: 'guest', email: '', displayName: 'زائر', role: 'subscriber', tier: 'free', isActive: false, createdAt: '', lastLoginAt: '' };
+   }
+ 
+   static setCurrentUser(user: AppUser): void {
+diff --git a/old/src/types/financial.ts b/new/src/types/financial.ts
+index c3b6f5c..0b43cf6 100644
+--- a/old/src/types/financial.ts
++++ b/new/src/types/financial.ts
+@@ -30,6 +30,13 @@ export interface Company {
+ }
+ 
+ export interface QuarterlyFinancial {
++  // Optional explicit FCFF bridge; legacy records remain valid but cannot enable DCF.
++  depreciationAmortizationYTD?: number | null;
++  changeOperatingNwcYTD?: number | null; // cumulative increase consumes cash; a decrease is negative
++  valuationTaxRate?: number | null; // decimal, 0.225 = 22.5%; applies to EBIT, not reported profit tax
++  valuationSource?: string | null;
++  financialUnit?: 'EGP_millions' | null;
++
+   id: string;
+   companyId: string;
+   year: number;
+@@ -71,6 +78,12 @@ export interface FinancialMetricsTTM {
+   operatingCashFlowTTM: number | null;
+   capexTTM: number | null;
+   fcfTTM: number | null;      // OCF_TTM - CapEx_TTM
++  depreciationAmortizationTTM?: number | null;
++  nopatTTM?: number | null;
++  changeOperatingNwcTTM?: number | null;
++  totalDebtLatest?: number | null;
++  cashLatest?: number | null;
++  fcffNotes?: string[];
+   fcffTTM: number | null;     // Free Cash Flow to Firm
+   epsTTM: number | null;      // Net Income TTM / Shares
+   bvps: number | null;        // Equity / Shares
+@@ -81,7 +94,7 @@ export interface FinancialMetricsTTM {
+   evToEbitda: number | null;
+   dividendYield: number | null;
+   dpsCurrent: number | null;
+-  wacc: number;
++  wacc: number | null;
+   costOfEquity: number;
+   netDebt: number | null;
+ }
+@@ -104,22 +117,23 @@ export interface AuditWarning {
+ export interface SensitivityMatrixCell {
+   growthRate: number;         // e.g. 0.04
+   discountRate: number;       // e.g. 0.22 (WACC or Ke)
+-  fairValue: number;          // Computed fair value EGP
++  fairValue: number | null;          // Computed fair value EGP
+   status: 'deeply_undervalued' | 'undervalued' | 'fair' | 'overvalued';
+-  diffPct: number;            // (FairValue - MarketPrice) / MarketPrice
++  diffPct: number | null;            // (FairValue - MarketPrice) / MarketPrice
+ }
+ 
+ export interface ScenarioBand {
+   name: string;
+   nameAr: string;
+-  fairValue: number;
+-  marginOfSafetyPct: number;
++  fairValue: number | null;
++  marginOfSafetyPct: number | null;
+   growthRate: number;
+   discountRate: number;
+   descriptionAr: string;
+ }
+ 
+ export interface ValuationResults {
++  dcfDetails?: import('../core/math/valuation').DcfDetails | null;
+   // Individual Models
+   dcfFairValue: number | null;
+   ddmFairValue: number | null;
+@@ -128,10 +142,10 @@ export interface ValuationResults {
+   grahamFairValue: number | null;
+   
+   // Composite & Verdict
+-  compositeFairValue: number;
++  compositeFairValue: number | null;
+   marketPrice: number;
+-  marginOfSafetyPct: number;   // (FairValue - MarketPrice) / FairValue * 100
+-  upsidePotentialPct: number;  // (FairValue - MarketPrice) / MarketPrice * 100
++  marginOfSafetyPct: number | null;   // (FairValue - MarketPrice) / FairValue * 100
++  upsidePotentialPct: number | null;  // (FairValue - MarketPrice) / MarketPrice * 100
+   
+   // Model weights (percentages summing to 100)
+   weights: {
+diff --git a/old/src/types/index.ts b/new/src/types/index.ts
+index 1abbab7..cfeaaf2 100644
+--- a/old/src/types/index.ts
++++ b/new/src/types/index.ts
+@@ -82,6 +82,13 @@ export interface DailyTradingRecord {
+ 
+ // --- 4. القوائم المالية الربع سنوية (Quarterly Financials - 26 Columns Standard) ---
+ export interface QuarterlyFinancialRecord {
++  // Optional explicit FCFF bridge; legacy records remain valid but cannot enable DCF.
++  depreciationAmortizationYTD?: number | null;
++  changeOperatingNwcYTD?: number | null; // cumulative increase consumes cash; a decrease is negative
++  valuationTaxRate?: number | null; // decimal, 0.225 = 22.5%; applies to EBIT, not reported profit tax
++  valuationSource?: string | null;
++  financialUnit?: 'EGP_millions' | null;
++
+   ticker: string;                           // الرمز
+   stockName: string;                        // StockName
+   yearQuarter: string;                      // YearQuarter e.g. 2024Q3
+diff --git a/old/src/utils/excelExport.ts b/new/src/utils/excelExport.ts
+index a97ffb8..d996089 100644
+--- a/old/src/utils/excelExport.ts
++++ b/new/src/utils/excelExport.ts
+@@ -43,7 +43,7 @@ export function exportCompanyValuationToExcel(
+     ['معدل الخالي من المخاطر (Rf)', `${(company.riskFreeRate * 100).toFixed(1)}%`],
+     ['علاوة مخاطر السوق (ERP)', `${(company.equityRiskPremium * 100).toFixed(1)}%`],
+     ['تكلفة حقوق الملكية (Ke)', `${(metrics.costOfEquity * 100).toFixed(2)}%`],
+-    ['متوسط تكلفة رأس المال (WACC)', `${(metrics.wacc * 100).toFixed(2)}%`],
++    ['متوسط تكلفة رأس المال (WACC)', `${(metrics.wacc === null ? 'غير متاح' : (metrics.wacc * 100).toFixed(2))}%`],
+     ['', ''],
+     ['نتائج نماذج التقييم الخمسة', 'القيمة المقدرة (ج.م)', 'الوزن النسبي (%)'],
+     ['1. التدفق النقدي المخصوم (DCF)', valuation.dcfFairValue ? valuation.dcfFairValue.toFixed(2) : 'غير منطبق', `${valuation.weights.dcf}%`],
+@@ -52,19 +52,33 @@ export function exportCompanyValuationToExcel(
+     ['4. التقييم النسبي بالمضاعفات (Relative)', valuation.relativeFairValue ? valuation.relativeFairValue.toFixed(2) : 'غير منطبق', `${valuation.weights.relative}%`],
+     ['5. نموذج بنجامين جراهام (Graham)', valuation.grahamFairValue ? valuation.grahamFairValue.toFixed(2) : 'غير منطبق', `${valuation.weights.graham}%`],
+     ['', '', ''],
+-    ['القيمة العادلة المرجحة (Composite Fair Value)', valuation.compositeFairValue.toFixed(2), '100%'],
++    ['القيمة العادلة المرجحة (Composite Fair Value)', (valuation.compositeFairValue?.toFixed(2) ?? 'غير متاح'), '100%'],
+     ['السعر السوقي الحالي', company.marketPrice.toFixed(2), ''],
+-    ['هامش الأمان (Margin of Safety %)', `${valuation.marginOfSafetyPct.toFixed(2)}%`, ''],
+-    ['العائد المستهدف الصعودي (Upside %)', `${valuation.upsidePotentialPct.toFixed(2)}%`, ''],
++    ['هامش الأمان (Margin of Safety %)', `${(valuation.marginOfSafetyPct?.toFixed(2) ?? 'غير متاح')}%`, ''],
++    ['العائد المستهدف الصعودي (Upside %)', `${(valuation.upsidePotentialPct?.toFixed(2) ?? 'غير متاح')}%`, ''],
+     ['', '', ''],
+     ['نطاقات السيناريوهات', 'القيمة العادلة (ج.م)', 'هامش الأمان'],
+-    ['السيناريو المتحفظ (Bear)', valuation.scenarios.bear.fairValue.toFixed(2), `${valuation.scenarios.bear.marginOfSafetyPct.toFixed(1)}%`],
+-    ['السيناريو الأساسي (Base)', valuation.scenarios.base.fairValue.toFixed(2), `${valuation.scenarios.base.marginOfSafetyPct.toFixed(1)}%`],
+-    ['السيناريو المتفائل (Bull)', valuation.scenarios.bull.fairValue.toFixed(2), `${valuation.scenarios.bull.marginOfSafetyPct.toFixed(1)}%`],
++    ['السيناريو المتحفظ (Bear)', (valuation.scenarios.bear.fairValue?.toFixed(2) ?? 'غير متاح'), `${(valuation.scenarios.bear.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%`],
++    ['السيناريو الأساسي (Base)', (valuation.scenarios.base.fairValue?.toFixed(2) ?? 'غير متاح'), `${(valuation.scenarios.base.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%`],
++    ['السيناريو المتفائل (Bull)', (valuation.scenarios.bull.fairValue?.toFixed(2) ?? 'غير متاح'), `${(valuation.scenarios.bull.marginOfSafetyPct?.toFixed(1) ?? 'غير متاح')}%`],
+   ];
++  summaryData.push(['FCFF_TTM (مليون جنيه)', metrics.fcffTTM ?? 'غير متاح']);
++  summaryData.push(['NOPAT_TTM', metrics.nopatTTM ?? 'غير متاح']);
++  summaryData.push(['D&A_TTM', metrics.depreciationAmortizationTTM ?? 'غير متاح']);
++  summaryData.push(['ΔOperating NWC_TTM', metrics.changeOperatingNwcTTM ?? 'غير متاح']);
++  if (valuation.dcfDetails) {
++    const d=valuation.dcfDetails;
++    const rows: any[][] = [['Year','Growth','FCFF','Discount factor','Present value'], ...d.years.map(y=>[y.year,y.growth,y.fcff,y.discountFactor,y.presentValue]), ['PV terminal',d.presentTerminalValue],['Enterprise value',d.enterpriseValue],['Net debt',d.netDebt],['Equity value',d.equityValue],['Per share',valuation.dcfFairValue]];
++    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'DCF_Audit');
++  }
+   const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+   XLSX.utils.book_append_sheet(wb, wsSummary, 'ملخص التقييم');
+ 
++  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
++    ['Year','Quarter','EBIT_YTD','DA_YTD','CapEx_YTD','DeltaOperatingNWC_YTD','ValuationTaxRate','ValuationSource','FinancialUnit'],
++    ...financials.map(f=>[f.year,f.quarter,f.operatingProfitYTD,f.depreciationAmortizationYTD ?? null,f.capexYTD,f.changeOperatingNwcYTD ?? null,f.valuationTaxRate ?? null,f.valuationSource ?? null,f.financialUnit ?? null]),
++  ]), 'FCFF_Inputs');
++
+   // 2. ورقة القوائم المالية الربع سنوية التراكمية (Quarterly Financials YTD)
+   const headers = [
+     'السنة',
+@@ -293,3 +307,21 @@ export function exportTradeLogToExcel(trades: TradeLog[]) {
+ 
+   XLSX.writeFile(wb, 'Mizan_Trade_Log.xlsx');
+ }
++
++export function downloadQuarterlyFcffTemplate() {
++  const wb=XLSX.utils.book_new();
++  const headers=['الرمز','StockName','YearQuarter','Shares','IntangibleAssets','TotalAssets','Equity','TotalDebtWithoutTX','TotalLiabilities','RevenueYTD','GrossProfitYTD','EBIT_YTD','PBT_YTD','NetIncomeYTD','OCF_YTD','NetInvestingCF_YTD','DividendsPaidYTD','Cash','DPS_Current','InterestExpense_YTD','FinanceCosts_YTD','InterestIncome_YTD','TaxExpense_YTD','InterestPaid_YTD','CapEx_YTD','DateInsertData','DA_YTD','DeltaOperatingNWC_YTD','ValuationTaxRate','ValuationSource','FinancialUnit'];
++  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([headers]),'QuarterlyFinancials');
++  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([
++    ['الحقل','التعليمات'],['المبالغ','بالمليون جنيه؛ Shares بالمليون سهم. كل تدفقات YTD تراكمية منذ بداية السنة.'],
++    ['CapEx_YTD','مدفوعات الاستثمار موجبة؛ لا تُدخل صافي التدفق الاستثماري بدلاً منها.'],
++    ['DA_YTD','الإهلاك والاستنفاد اللذان خُصما من EBIT؛ موجب أو صفر.'],
++    ['DeltaOperatingNWC_YTD','زيادة رأس المال العامل التشغيلي منذ أول السنة موجبة؛ النقص سالب. استبعد النقد والديون.'],
++    ['ValuationTaxRate','كسر عشري بين 0 و1. لا تستعمل 22.5 للدلالة على 22.5%.'],
++    ['ValuationSource','مرجع القوائم والفترة والصفحة/رابط المصدر. وجود المرجع لا يعني تحققاً آلياً من صحته.'],
++    ['FinancialUnit','اكتب EGP_millions بعد التأكد من اتساق الوحدات.'],
++    ['BLANK','الفراغ بيانات غير مدخلة؛ الصفر قيمة فعلية. الحقول الجديدة اختيارية للتوافق مع الملفات القديمة.'],
++    ['TTM','FY أو YTD الحالي + FY السابق − YTD المقارن، مع استكمال المدخلات والمصدر لكل فترة.'],
++  ]),'تعليمات FCFF');
++  XLSX.writeFile(wb,'Mizan_Quarterly_FCFF_Template.xlsx');
++}
+diff --git a/old/src/utils/financialCalculations.ts b/new/src/utils/financialCalculations.ts
+index 8327af4..8489a60 100644
+--- a/old/src/utils/financialCalculations.ts
++++ b/new/src/utils/financialCalculations.ts
+@@ -1,3 +1,4 @@
++import { computeComprehensiveValuation } from '../core/math/valuation';
+ /**
+  * @license
+  * SPDX-License-Identifier: Apache-2.0
+@@ -19,6 +20,20 @@ const QUARTER_ORDER: Record<string, number> = {
+   FY: 4,
+ };
+ 
++export function readYtdTTM<T extends { year:number; quarter:string }>(records:T[], getter:(r:T)=>number|null):number|null {
++  const ordered = [...records].sort((a,b) => a.year-b.year || (QUARTER_ORDER[a.quarter] ?? 0)-(QUARTER_ORDER[b.quarter] ?? 0));
++  const latest = ordered.at(-1);
++  if (!latest) return null;
++  const current = getter(latest);
++  if (current === null || !Number.isFinite(current)) return null;
++  if (latest.quarter === 'FY') return current;
++  const priorFY = ordered.find(r => r.year === latest.year-1 && r.quarter === 'FY');
++  const priorComparable = ordered.find(r => r.year === latest.year-1 && r.quarter === latest.quarter);
++  if (!priorFY || !priorComparable) return null;
++  const fy = getter(priorFY), comp = getter(priorComparable);
++  return fy !== null && comp !== null && Number.isFinite(fy) && Number.isFinite(comp) ? current+fy-comp : null;
++}
++
+ export interface StandaloneQuarter {
+   year: number;
+   quarter: string;
+@@ -67,7 +82,7 @@ export function computeStandaloneQuarters(
+       // دالة مساعدة لفك التراكم: إذا كان أي منهما null يبقى الناتج null
+       const decumulate = (curVal: number | null, prevVal: number | null): number | null => {
+         if (curVal === null) return null;
+-        if (!prev || prevVal === null) return curVal;
++        if (!prev || prevVal === null || QUARTER_ORDER[cur.quarter] !== QUARTER_ORDER[prev.quarter] + 1) return null;
+         return curVal - prevVal;
+       };
+ 
+@@ -125,24 +140,28 @@ export function calculateTTMMetrics(
+   const last4 = standaloneQuarters.slice(-4);
+   const latestFinancial = sorted[sorted.length - 1];
+ 
+-  // دالة جمع 4 أرباع (إذا توافرت 4 أرباع غير فارغة، وإلا التعميم مع إشارة واضحة)
++  // Exact TTM from cumulative reports: latest YTD + previous FY - previous comparable YTD.
++  // Never annualize incomplete quarters or sum non-consecutive reports.
++  const previousFY = sorted.find(f => f.year === latestFinancial?.year - 1 && f.quarter === 'FY');
++  const previousComparable = sorted.find(f => f.year === latestFinancial?.year - 1 && f.quarter === latestFinancial?.quarter);
+   const sumTTM = (getter: (q: StandaloneQuarter) => number | null): number | null => {
+-    if (last4.length === 0) return null;
+-    let sum = 0;
+-    let validCount = 0;
+-    for (const q of last4) {
+-      const val = getter(q);
+-      if (val !== null) {
+-        sum += val;
+-        validCount++;
+-      }
+-    }
+-    if (validCount === 0) return null;
+-    // إذا كانت الأرباع المتاحة أقل من 4، نحسب معدلاً سنوياً نسبياً
+-    if (validCount < 4) {
+-      return (sum / validCount) * 4;
+-    }
+-    return sum;
++    const toSnapshot = (f: QuarterlyFinancial): StandaloneQuarter => ({
++      year:f.year, quarter:f.quarter, revenue:f.revenueYTD, grossProfit:f.grossProfitYTD,
++      operatingProfit:f.operatingProfitYTD, netProfit:f.netProfitYTD,
++      operatingCashFlow:f.operatingCashFlowYTD, capex:f.capexYTD, fcf:null,
++      dividendsPaidYTD:f.dividendsPaidYTD, dpsCurrent:f.dpsCurrent,
++      totalAssets:f.totalAssets, totalDebt:f.totalDebt, cashAndEquivalents:f.cashAndEquivalents,
++      totalEquity:f.totalEquity, sharesCount:f.sharesCount,
++    });
++    if (!latestFinancial) return null;
++    const current = getter(toSnapshot(latestFinancial));
++    if (current === null || !Number.isFinite(current)) return null;
++    if (latestFinancial.quarter === 'FY') return current;
++    if (!previousFY || !previousComparable) return null;
++    const fy = getter(toSnapshot(previousFY));
++    const comparable = getter(toSnapshot(previousComparable));
++    return fy !== null && comparable !== null && Number.isFinite(fy) && Number.isFinite(comparable)
++      ? current + fy - comparable : null;
+   };
+ 
+   const revenueTTM = sumTTM((q) => q.revenue);
+@@ -158,18 +177,32 @@ export function calculateTTMMetrics(
+       : null;
+ 
+   // FCFF TTM = EBIT * (1 - t) - CapEx + D&A (approximated via OCF + Interest*(1-t) - CapEx)
+-  const fcffTTM = fcfTTM !== null ? fcfTTM * 1.05 : null;
+-
+-  const shares = company.sharesOutstanding > 0 ? company.sharesOutstanding : 1;
+-  const epsTTM = netIncomeTTM !== null ? netIncomeTTM / shares : null;
++  const documented = (f: QuarterlyFinancial) => f.financialUnit === 'EGP_millions' && !!f.valuationSource?.trim();
++  const nopatTTM = readYtdTTM(sorted, f => documented(f) && f.operatingProfitYTD !== null &&
++    f.valuationTaxRate != null && Number.isFinite(f.valuationTaxRate) && f.valuationTaxRate >= 0 && f.valuationTaxRate <= 1 && (f.operatingProfitYTD >= 0 || f.valuationTaxRate === 0)
++    ? f.operatingProfitYTD * (1-f.valuationTaxRate) : null);
++  const depreciationAmortizationTTM = readYtdTTM(sorted, f => documented(f) &&
++    f.depreciationAmortizationYTD != null && f.depreciationAmortizationYTD >= 0 ? f.depreciationAmortizationYTD : null);
++  const changeOperatingNwcTTM = readYtdTTM(sorted, f => documented(f) ? f.changeOperatingNwcYTD ?? null : null);
++  const documentedCapex = readYtdTTM(sorted, f => documented(f) && f.capexYTD !== null && f.capexYTD >= 0 ? f.capexYTD : null);
++  const fcffNotes: string[] = [];
++  if (nopatTTM === null) fcffNotes.push('NOPAT_TTM غير متاح: يلزم EBIT وضريبة تقييم صريحة ومصدر ووحدة لجميع الفترات اللازمة.');
++  if (depreciationAmortizationTTM === null || depreciationAmortizationTTM < 0) fcffNotes.push('D&A_TTM غير متاح أو غير موثق.');
++  if (changeOperatingNwcTTM === null) fcffNotes.push('التغير في رأس المال العامل التشغيلي غير متاح أو غير موثق.');
++  if (documentedCapex === null || documentedCapex < 0) fcffNotes.push('CapEx_TTM غير موثق أو إشارة المدخل سالبة؛ أدخل المدفوع كقيمة موجبة.');
++  const fcffTTM = nopatTTM !== null && depreciationAmortizationTTM !== null && depreciationAmortizationTTM >= 0 && changeOperatingNwcTTM !== null && documentedCapex !== null && documentedCapex >= 0
++    ? nopatTTM + depreciationAmortizationTTM - documentedCapex - changeOperatingNwcTTM : null;
++
++  const shares = company.sharesOutstanding > 0 ? company.sharesOutstanding : NaN;
++  const epsTTM = netIncomeTTM !== null && Number.isFinite(shares) ? netIncomeTTM / shares : null;
+ 
+   const totalEquity = latestFinancial?.totalEquity ?? null;
+-  const bvps = totalEquity !== null ? totalEquity / shares : null;
++  const bvps = totalEquity !== null && Number.isFinite(shares) ? totalEquity / shares : null;
+   const roe = netIncomeTTM !== null && totalEquity !== null && totalEquity > 0 ? netIncomeTTM / totalEquity : null;
+ 
+-  const totalDebt = latestFinancial?.totalDebt ?? 0;
+-  const cash = latestFinancial?.cashAndEquivalents ?? 0;
+-  const netDebt = totalDebt - cash;
++  const totalDebt = latestFinancial?.totalDebt ?? null;
++  const cash = latestFinancial?.cashAndEquivalents ?? null;
++  const netDebt = totalDebt !== null && cash !== null ? totalDebt - cash : null;
+ 
+   // حساب تكلفة حقوق الملكية (Ke) عبر CAPM
+   // Ke = Rf + Beta * ERP
+@@ -188,9 +221,9 @@ export function calculateTTMMetrics(
+ 
+   // EV / EBITDA تقريبي
+   const marketCap = company.marketPrice * shares;
+-  const enterpriseValue = marketCap + netDebt;
+-  const ebitdaTTM = operatingProfitTTM !== null ? operatingProfitTTM * 1.15 : null;
+-  const evToEbitda = ebitdaTTM !== null && ebitdaTTM > 0 ? enterpriseValue / ebitdaTTM : null;
++  const enterpriseValue = netDebt !== null ? marketCap + netDebt : null;
++  const ebitdaTTM = operatingProfitTTM !== null && depreciationAmortizationTTM !== null ? operatingProfitTTM + depreciationAmortizationTTM : null;
++  const evToEbitda = enterpriseValue !== null && ebitdaTTM !== null && ebitdaTTM > 0 ? enterpriseValue / ebitdaTTM : null;
+ 
+   // عائد التوزيع النقدي DPS Current
+   const dpsCurrent = latestFinancial?.dpsCurrent ?? null;
+@@ -205,10 +238,12 @@ export function calculateTTMMetrics(
+     capexTTM,
+     fcfTTM,
+     fcffTTM,
++    nopatTTM, depreciationAmortizationTTM, changeOperatingNwcTTM, fcffNotes,
++    totalDebtLatest: totalDebt, cashLatest: cash,
+     epsTTM,
+     bvps,
+     roe,
+-    roic: roe !== null ? roe * 0.85 : null,
++    roic: null, // No invested-capital reconciliation supplied.
+     peTTM,
+     pbTTM,
+     evToEbitda,
+@@ -229,220 +264,49 @@ export function calculateTTMMetrics(
+  * 5. Graham Model (Formula & Number)
+  */
+ export function runValuationModels(
+-  company: Company,
+-  metrics: FinancialMetricsTTM,
+-  customWeights?: { dcf: number; ddm: number; rim: number; relative: number; graham: number }
++  company: Company, metrics: FinancialMetricsTTM,
++  customWeights?: { dcf: number; ddm: number; rim: number; relative: number; graham: number },
++  params: Record<string, number> = {},
+ ): ValuationResults {
+-  const shares = company.sharesOutstanding > 0 ? company.sharesOutstanding : 1;
+-  const wacc = Math.max(0.08, metrics.wacc);
+-  const ke = Math.max(0.09, metrics.costOfEquity);
+-  const gPerm = Math.min(company.sustainableGrowthRate, wacc - 0.02); // منع انقسام القيمة اللانهائية
+-  const gShort = company.shortTermGrowthRate;
+-
+-  // --- 1. نموذج التدفق النقدي المخصوم (DCF) ---
+-  let dcfFairValue: number | null = null;
+-  const baseFcf = metrics.fcfTTM ?? (metrics.netIncomeTTM ? metrics.netIncomeTTM * 0.7 : null);
+-  if (baseFcf !== null && baseFcf > 0) {
+-    let pvFcfSum = 0;
+-    let projFcf = baseFcf;
+-    for (let t = 1; t <= 5; t++) {
+-      projFcf = projFcf * (1 + gShort);
+-      const discountFactor = Math.pow(1 + wacc, t);
+-      pvFcfSum += projFcf / discountFactor;
+-    }
+-    // Terminal Value
+-    const tvYear5 = (projFcf * (1 + gPerm)) / (wacc - gPerm);
+-    const pvTv = tvYear5 / Math.pow(1 + wacc, 5);
+-    const enterpriseValue = pvFcfSum + pvTv;
+-    const equityValue = enterpriseValue - (metrics.netDebt ?? 0);
+-    dcfFairValue = Math.max(0, equityValue / shares);
+-  }
+-
+-  // --- 2. نموذج خصم التوزيعات (DDM - Gordon Model) ---
+-  let ddmFairValue: number | null = null;
+-  const dps = metrics.dpsCurrent ?? (metrics.epsTTM ? metrics.epsTTM * 0.4 : null);
+-  const gDiv = Math.min(company.sustainableGrowthRate, ke - 0.02);
+-  if (dps !== null && dps > 0 && ke > gDiv) {
+-    // Gordon: P0 = DPS1 / (Ke - g) = DPS0 * (1+g) / (Ke - g)
+-    const nextDps = dps * (1 + gDiv);
+-    ddmFairValue = nextDps / (ke - gDiv);
+-  }
+-
+-  // --- 3. نموذج الدخل المتبقي (RIM - Residual Income Model) ---
+-  // V0 = BVPS0 + Sum( (ROE_t - Ke) * BVPS_{t-1} / (1+Ke)^t ) + Terminal RI
+-  let rimFairValue: number | null = null;
+-  if (metrics.bvps !== null && metrics.bvps > 0) {
+-    const currentRoe = metrics.roe ?? 0.25;
+-    let currentBvps = metrics.bvps;
+-    let pvResidualIncomeSum = 0;
+-    for (let t = 1; t <= 5; t++) {
+-      const residualIncome = (currentRoe - ke) * currentBvps;
+-      const discountFactor = Math.pow(1 + ke, t);
+-      pvResidualIncomeSum += residualIncome / discountFactor;
+-      currentBvps = currentBvps * (1 + (currentRoe * 0.6)); // افتراض إعادة استثمار 60%
+-    }
+-    // Terminal residual income
+-    const terminalRi = ((currentRoe - ke) * currentBvps) / ke;
+-    const pvTerminalRi = terminalRi / Math.pow(1 + ke, 5);
+-    rimFairValue = Math.max(metrics.bvps * 0.5, metrics.bvps + pvResidualIncomeSum + pvTerminalRi);
+-  }
+-
+-  // --- 4. التقييم النسبي بمضاعفات السوق (Relative Valuation) ---
+-  let relativeFairValue: number | null = null;
+-  const peVal = metrics.epsTTM !== null && metrics.epsTTM > 0 ? metrics.epsTTM * company.targetPE : null;
+-  const pbVal = metrics.bvps !== null && metrics.bvps > 0 ? metrics.bvps * company.targetPB : null;
+-  if (peVal !== null && pbVal !== null) {
+-    relativeFairValue = (peVal * 0.6) + (pbVal * 0.4);
+-  } else if (peVal !== null) {
+-    relativeFairValue = peVal;
+-  } else if (pbVal !== null) {
+-    relativeFairValue = pbVal;
+-  }
+-
+-  // --- 5. صيغة بنجامين جراهام (Graham Fair Value) ---
+-  // Graham Number = sqrt(22.5 * EPS * BVPS)
+-  let grahamFairValue: number | null = null;
+-  if (metrics.epsTTM !== null && metrics.bvps !== null && metrics.epsTTM > 0 && metrics.bvps > 0) {
+-    grahamFairValue = Math.sqrt(22.5 * metrics.epsTTM * metrics.bvps);
+-  } else if (metrics.epsTTM !== null && metrics.epsTTM > 0) {
+-    // صيغة جراهام المعدلة للنمو: V = EPS * (8.5 + 2g) * (4.4 / Y)
+-    const yRate = company.riskFreeRate * 100;
+-    grahamFairValue = metrics.epsTTM * (8.5 + 2 * (gShort * 100)) * (4.4 / (yRate || 18));
+-  }
+-
+-  // أوزان النماذج الافتراضية
+-  const defaultWeights = customWeights || {
+-    dcf: dcfFairValue !== null ? 30 : 0,
+-    ddm: ddmFairValue !== null ? 20 : 0,
+-    rim: rimFairValue !== null ? 25 : 0,
+-    relative: relativeFairValue !== null ? 15 : 0,
+-    graham: grahamFairValue !== null ? 10 : 0,
++  const input = {
++    ticker: company.ticker, marketPrice: company.marketPrice, sharesOutstanding: company.sharesOutstanding,
++    betaRaw: company.beta, netIncomeTTM: metrics.netIncomeTTM, ocfTTM: metrics.operatingCashFlowTTM,
++    capexTTM: metrics.capexTTM, fcfTTM: metrics.fcfTTM, fcffTTM: metrics.fcffTTM,
++    totalEquity: metrics.bvps !== null ? metrics.bvps * company.sharesOutstanding : null,
++    totalDebt: metrics.totalDebtLatest ?? null, cash: metrics.cashLatest ?? null, dpsCurrent: metrics.dpsCurrent, sector:company.sector,
++    sectorPE: company.targetPE, sectorPB: company.targetPB,
+   };
+-
+-  // إعادة توزيع الأوزان على النماذج المتاحة فعلياً لتساوي 100%
+-  let activeWeightSum = 0;
+-  if (dcfFairValue !== null) activeWeightSum += defaultWeights.dcf;
+-  if (ddmFairValue !== null) activeWeightSum += defaultWeights.ddm;
+-  if (rimFairValue !== null) activeWeightSum += defaultWeights.rim;
+-  if (relativeFairValue !== null) activeWeightSum += defaultWeights.relative;
+-  if (grahamFairValue !== null) activeWeightSum += defaultWeights.graham;
+-
+-  const normalizedWeights = {
+-    dcf: dcfFairValue !== null && activeWeightSum > 0 ? (defaultWeights.dcf / activeWeightSum) : 0,
+-    ddm: ddmFairValue !== null && activeWeightSum > 0 ? (defaultWeights.ddm / activeWeightSum) : 0,
+-    rim: rimFairValue !== null && activeWeightSum > 0 ? (defaultWeights.rim / activeWeightSum) : 0,
+-    relative: relativeFairValue !== null && activeWeightSum > 0 ? (defaultWeights.relative / activeWeightSum) : 0,
+-    graham: grahamFairValue !== null && activeWeightSum > 0 ? (defaultWeights.graham / activeWeightSum) : 0,
+-  };
+-
+-  // حساب القيمة العادلة المرجحة
+-  let compositeFairValue = 0;
+-  if (dcfFairValue !== null) compositeFairValue += dcfFairValue * normalizedWeights.dcf;
+-  if (ddmFairValue !== null) compositeFairValue += ddmFairValue * normalizedWeights.ddm;
+-  if (rimFairValue !== null) compositeFairValue += rimFairValue * normalizedWeights.rim;
+-  if (relativeFairValue !== null) compositeFairValue += relativeFairValue * normalizedWeights.relative;
+-  if (grahamFairValue !== null) compositeFairValue += grahamFairValue * normalizedWeights.graham;
+-
+-  if (compositeFairValue <= 0) {
+-    compositeFairValue = company.marketPrice; // ملاذ أخير
+-  }
+-
+-  const marketPrice = company.marketPrice;
+-  const marginOfSafetyPct = ((compositeFairValue - marketPrice) / compositeFairValue) * 100;
+-  const upsidePotentialPct = ((compositeFairValue - marketPrice) / marketPrice) * 100;
+-
+-  // --- نطاقات السيناريوهات (Scenario Bands) ---
+-  const bearFairValue = compositeFairValue * 0.78; // خصم 22% سيناريو ضاغط
+-  const bullFairValue = compositeFairValue * 1.25; // تفاؤل 25% مع تخفيف الفائدة ونمو الصادرات
+-
+-  const scenarios = {
+-    bear: {
+-      name: 'Bear',
+-      nameAr: 'متحفظ (سيناريو ضاغط)',
+-      fairValue: bearFairValue,
+-      marginOfSafetyPct: ((bearFairValue - marketPrice) / bearFairValue) * 100,
+-      growthRate: Math.max(0.02, company.sustainableGrowthRate - 0.02),
+-      discountRate: wacc + 0.02,
+-      descriptionAr: 'ارتفاع معدلات الفائدة، تباطؤ نمو السوق، وانكماش هوامش الربحية.',
+-    },
+-    base: {
+-      name: 'Base',
+-      nameAr: 'أساسي (السيناريو الأرجح)',
+-      fairValue: compositeFairValue,
+-      marginOfSafetyPct,
+-      growthRate: company.sustainableGrowthRate,
+-      discountRate: wacc,
+-      descriptionAr: 'المسار التشغيلي المتوقع وفقاً للنتائج التاريخية وخطط الشركة التوسعية.',
+-    },
+-    bull: {
+-      name: 'Bull',
+-      nameAr: 'متفائل (سيناريو النمو القوي)',
+-      fairValue: bullFairValue,
+-      marginOfSafetyPct: ((bullFairValue - marketPrice) / bullFairValue) * 100,
+-      growthRate: company.sustainableGrowthRate + 0.03,
+-      discountRate: Math.max(0.12, wacc - 0.02),
+-      descriptionAr: 'انخفاض تكلفة التمويل، تسارع التدفقات النقدية، وتوسع الحصة السوقية.',
+-    },
++  const effective = { ...params };
++  if (customWeights) for (const [key,value] of Object.entries(customWeights))
++    effective[`Weight_${key === 'relative' ? 'Relative' : key === 'graham' ? 'Graham' : key.toUpperCase()}`] = value;
++  const base = computeComprehensiveValuation(input, effective);
++  const g = effective.Terminal_Growth ?? company.sustainableGrowthRate;
++  const scenario = (name: string, title: string, delta: number) => {
++    const assumptions = { ...effective, Terminal_Growth:g + delta, DDM_Growth:(effective.DDM_Growth ?? 0.1) + delta,
++      Rf_Egypt_10Y:(effective.Rf_Egypt_10Y ?? 0.251) - delta,
++      Rf_USD_10Y:(effective.Rf_USD_10Y ?? 0.049) - delta };
++    const result = delta === 0 ? base : computeComprehensiveValuation(input, assumptions);
++    return { name, nameAr:title, fairValue:result.compositeFairValue,
++      marginOfSafetyPct:result.marginOfSafetyPct, growthRate:g + delta, discountRate:result.costOfEquity,
++      descriptionAr:'إعادة حساب النماذج المتاحة بتغيير افتراضات النمو والعائد الخالي من المخاطر؛ ليست توقعاً مؤكداً.' };
+   };
+-
+-  // --- مصفوفة الحساسية ثنائية الأبعاد (2D Sensitivity Matrix) ---
+-  // نمو طويل الأجل (g) مقابل معدل الخصم (WACC / Ke)
+-  const growthSteps = [0.03, 0.04, 0.05, 0.06, 0.07];
+-  const discountSteps = [
+-    Math.max(0.14, wacc - 0.04),
+-    Math.max(0.16, wacc - 0.02),
+-    wacc,
+-    wacc + 0.02,
+-    wacc + 0.04,
+-  ].map((d) => Number(d.toFixed(3)));
+-
+-  const sensitivityMatrix: SensitivityMatrixCell[][] = [];
+-
+-  for (const disc of discountSteps) {
+-    const row: SensitivityMatrixCell[] = [];
+-    for (const gr of growthSteps) {
+-      // تعديل تقريبي للقيمة العادلة بالنسبة للتغير عن السيناريو الأساسي
+-      const discFactor = (wacc + 0.05) / (disc + 0.05);
+-      const grFactor = (1 + gr) / (1 + company.sustainableGrowthRate);
+-      const cellVal = compositeFairValue * discFactor * grFactor;
+-      const diffPct = ((cellVal - marketPrice) / marketPrice) * 100;
+-
+-      let status: SensitivityMatrixCell['status'] = 'fair';
+-      if (diffPct > 35) status = 'deeply_undervalued';
+-      else if (diffPct > 12) status = 'undervalued';
+-      else if (diffPct < -15) status = 'overvalued';
+-
+-      row.push({
+-        growthRate: gr,
+-        discountRate: disc,
+-        fairValue: cellVal,
+-        status,
+-        diffPct,
+-      });
+-    }
+-    sensitivityMatrix.push(row);
+-  }
+-
++  const growthRates = [g - .02, g - .01, g, g + .01, g + .02];
++  const discountRates = [-.04,-.02,0,.02,.04].map(d => base.costOfEquity + d);
++  const sensitivityMatrix = discountRates.map(discount => growthRates.map(growth => {
++    const shift = discount - base.costOfEquity;
++    const v = computeComprehensiveValuation(input, { ...effective, Terminal_Growth:growth, DDM_Growth:growth,
++      Rf_Egypt_10Y:(effective.Rf_Egypt_10Y ?? .251) + shift, Rf_USD_10Y:(effective.Rf_USD_10Y ?? .049) + shift });
++    const diff = v.upsidePotentialPct;
++    return { growthRate:growth, discountRate:discount, fairValue:v.compositeFairValue,
++      diffPct:diff, status:(diff !== null && diff > 35 ? 'deeply_undervalued' : diff !== null && diff > 12 ? 'undervalued' : diff !== null && diff < -15 ? 'overvalued' : 'fair') as SensitivityMatrixCell['status'] };
++  }));
+   return {
+-    dcfFairValue,
+-    ddmFairValue,
+-    rimFairValue,
+-    relativeFairValue,
+-    grahamFairValue,
+-    compositeFairValue,
+-    marketPrice,
+-    marginOfSafetyPct,
+-    upsidePotentialPct,
+-    weights: {
+-      dcf: Math.round(normalizedWeights.dcf * 100),
+-      ddm: Math.round(normalizedWeights.ddm * 100),
+-      rim: Math.round(normalizedWeights.rim * 100),
+-      relative: Math.round(normalizedWeights.relative * 100),
+-      graham: Math.round(normalizedWeights.graham * 100),
+-    },
+-    scenarios,
+-    sensitivityMatrix,
+-    growthRates: growthSteps,
+-    discountRates: discountSteps,
++    dcfFairValue:base.dcfValue, ddmFairValue:base.ddmValue, rimFairValue:base.rimValue,
++    relativeFairValue:base.relativeValue, grahamFairValue:base.grahamValue,
++    compositeFairValue:base.compositeFairValue, marketPrice:company.marketPrice,
++    marginOfSafetyPct:base.marginOfSafetyPct, upsidePotentialPct:base.upsidePotentialPct,
++    dcfDetails:base.dcfDetails,
++    weights:base.weights, scenarios:{bear:scenario('Bear','متحفظ',-.02),base:scenario('Base','أساسي',0),bull:scenario('Bull','متفائل',.02)},
++    sensitivityMatrix, growthRates, discountRates,
+   };
+ }
+diff --git a/old/src/utils/storage.ts b/new/src/utils/storage.ts
+index 43a2f16..f85e1e6 100644
+--- a/old/src/utils/storage.ts
++++ b/new/src/utils/storage.ts
+@@ -26,9 +26,6 @@ export function loadStoredCompanies(): Company[] {
+ 
+ export function saveStoredCompanies(companies: Company[]): void {
+   FirestoreService.setCachedCompanies(companies);
+-  FirestoreService.bulkSaveCompanies(companies).catch((err) =>
+-    console.warn('Background Firestore save companies error:', err)
+-  );
+ }
+ 
+ export function loadStoredFinancials(): QuarterlyFinancial[] {
+@@ -37,9 +34,6 @@ export function loadStoredFinancials(): QuarterlyFinancial[] {
+ 
+ export function saveStoredFinancials(financials: QuarterlyFinancial[]): void {
+   FirestoreService.setCachedFinancials(financials);
+-  FirestoreService.bulkSaveFinancials(financials).catch((err) =>
+-    console.warn('Background Firestore save financials error:', err)
+-  );
+ }
+ 
+ export function loadStoredStories(): Record<string, InvestmentStory> {
+@@ -48,11 +42,6 @@ export function loadStoredStories(): Record<string, InvestmentStory> {
+ 
+ export function saveStoredStories(stories: Record<string, InvestmentStory>): void {
+   FirestoreService.setCachedStories(stories);
+-  Object.values(stories).forEach((story) => {
+-    FirestoreService.saveStory(story).catch((err) =>
+-      console.warn('Background Firestore save story error:', err)
+-    );
+-  });
+ }
+ 
+ export function loadStoredDecisions(): Record<string, DecisionItem> {
+@@ -61,11 +50,6 @@ export function loadStoredDecisions(): Record<string, DecisionItem> {
+ 
+ export function saveStoredDecisions(decisions: Record<string, DecisionItem>): void {
+   FirestoreService.setCachedDecisions(decisions);
+-  Object.values(decisions).forEach((decision) => {
+-    FirestoreService.saveDecision(decision).catch((err) =>
+-      console.warn('Background Firestore save decision error:', err)
+-    );
+-  });
+ }
+ 
+ export function loadStoredTrades(): TradeLog[] {
+@@ -74,9 +58,6 @@ export function loadStoredTrades(): TradeLog[] {
+ 
+ export function saveStoredTrades(trades: TradeLog[]): void {
+   FirestoreService.setCachedTrades(trades);
+-  FirestoreService.bulkSaveTrades(trades).catch((err) =>
+-    console.warn('Background Firestore save trades error:', err)
+-  );
+ }
+ 
+ export function clearAndResetAllStorage(): void {

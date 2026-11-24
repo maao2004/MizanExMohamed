@@ -1,0 +1,184 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // 1. RBAC & IDENTITY HELPER FUNCTIONS
+    // ==========================================
+
+    function isAuthenticated() {
+      return request.auth != null && (
+        !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isActive', true) == true
+      );
+    }
+
+    function hasRole(role) {
+      return isAuthenticated() && (
+        request.auth.token.get('role', '') == role ||
+        (role == 'admin' && request.auth.token.get('admin', false) == true)
+      );
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        hasRole('admin') ||
+        (request.auth.token.get('email_verified', false) == true &&
+         request.auth.token.get('email', '') == 'maao2004@gmail.com') ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isDataEntry() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        hasRole('data_entry') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'data_entry'])
+      );
+    }
+
+    function isSubscriber() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        isDataEntry() ||
+        hasRole('subscriber') ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['admin', 'data_entry', 'subscriber'])
+      );
+    }
+
+    // ==========================================
+    // 2. FINANCIAL DATA COLLECTIONS ACCESS RULES (SERVER-ONLY WRITES)
+    // ==========================================
+
+    match /companies/{companyId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /financials/{financialId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /quarterly_financial_records/{recordId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /daily_trading_records/{dailyId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /daily_trading_schemas/{schemaId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /stories/{companyId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /decisions/{companyId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /trades/{tradeId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /macro_params/{paramKey} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /sectorPE/{sectorId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    // 3. GOVERNANCE & PHASE 2 COLLECTIONS (SERVER-ONLY WRITES VIA ADMIN SDK)
+
+    match /beta_assumptions/{tickerId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /dividend_records/{dividendId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /dividend_year_statuses/{statusId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /dividend_year_locks/{lockId} {
+      allow read, write: if false;
+    }
+
+    match /company_assumptions/{tickerId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+
+      match /parameters/{paramKey} {
+        allow read: if isSubscriber();
+        allow write: if false;
+      }
+    }
+
+    match /{path=**}/parameters/{paramKey} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    match /import_batches/{batchId} {
+      allow read: if isDataEntry();
+      allow write: if false;
+    }
+
+    match /real_estate_disclosures/{disclosureId} {
+      allow read: if isDataEntry();
+      allow write: if false;
+    }
+
+    match /tombstones/{tombId} {
+      allow read: if isSubscriber();
+      allow write: if false;
+    }
+
+    // 4. USERS & ADMINS
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly([
+          'id', 'email', 'displayName', 'photoURL', 'role', 'tier', 'isActive',
+          'createdAt', 'lastLoginAt', 'updatedAt'
+        ]) &&
+        request.resource.data.id == userId &&
+        request.resource.data.email == request.auth.token.get('email', '') &&
+        request.resource.data.role == 'subscriber' &&
+        request.resource.data.tier == 'free' &&
+        request.resource.data.isActive == true;
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.auth.uid == userId &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'lastLoginAt', 'updatedAt']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}

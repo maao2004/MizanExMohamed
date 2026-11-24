@@ -1,0 +1,8 @@
+{
+  "name": "Remix ميزان",
+  "description": "ميزان - منصة تقييم ومراجعة الأسهم المصرية\nمنصة تفاعلية متخصصة لإدارة ومراجعة وتدقيق نماذج تقييم أسهم البورصة المصرية بنماذج DCF, DDM, RIM, Relative, Graham ومحرك تدقيق محاسبي آلي\n",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

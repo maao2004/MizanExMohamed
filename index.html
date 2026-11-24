@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Guard against third-party extension injection errors (e.g. MetaMask inpage.js)
+      window.addEventListener('error', function(event) {
+        var fn = event.filename || '';
+        var msg = event.message || '';
+        if (
+          fn.indexOf('chrome-extension://') !== -1 ||
+          fn.indexOf('moz-extension://') !== -1 ||
+          fn.indexOf('inpage.js') !== -1 ||
+          msg.indexOf('MetaMask') !== -1 ||
+          msg.indexOf('ethereum') !== -1
+        ) {
+          event.stopImmediatePropagation();
+          event.preventDefault();
+          return true;
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function(event) {
+        var reason = event.reason;
+        var msg = (reason && (reason.message || String(reason))) || '';
+        var stack = (reason && reason.stack) || '';
+        if (
+          msg.indexOf('MetaMask') !== -1 ||
+          msg.indexOf('ethereum') !== -1 ||
+          stack.indexOf('chrome-extension://') !== -1 ||
+          stack.indexOf('inpage.js') !== -1
+        ) {
+          event.stopImmediatePropagation();
+          event.preventDefault();
+        }
+      }, true);
+    </script>
+    <title>ميزان - منصة تقييم ومراجعة الأسهم المصرية</title>
+    <meta name="description" content="منصة تفاعلية متخصصة لإدارة ومراجعة وتدقيق نماذج تقييم أسهم البورصة المصرية بنماذج DCF, DDM, RIM, Relative, Graham ومحرك تدقيق محاسبي آلي." />
+    <meta property="og:title" content="ميزان - منصة تقييم ومراجعة الأسهم المصرية" />
+    <meta property="og:description" content="منصة تفاعلية متخصصة لإدارة ومراجعة وتدقيق نماذج تقييم أسهم البورصة المصرية بنماذج DCF, DDM, RIM, Relative, Graham ومحرك تدقيق محاسبي آلي." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

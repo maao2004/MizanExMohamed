@@ -1,0 +1,750 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export type ParameterValueType = 'pct' | 'integer' | 'multiple' | 'mode' | 'number';
+export type ParameterScope = 'global' | 'company';
+export type ParameterCategory =
+  | 'tax_rf'
+  | 'risk_premiums'
+  | 'growth'
+  | 'wacc_modes'
+  | 'weights'
+  | 'macro_inflation'
+  | 'beta'
+  | 'terminal'
+  | 'multiples';
+
+export type ValuationModelRef =
+  | 'dcf'
+  | 'ddm'
+  | 'rim'
+  | 'relative'
+  | 'graham'
+  | 'ke'
+  | 'wacc'
+  | 'beta'
+  | 'composite';
+
+export interface ParameterRegistryDefinition {
+  key: string;
+  nameAr: string;
+  descriptionAr: string;
+  valueType: ParameterValueType;
+  unit: string;
+  allowedScopes: ParameterScope[];
+  category: ParameterCategory;
+  isPercentage?: boolean;
+  min?: number;
+  max?: number;
+  allowedValues?: number[];
+  usedByModels: ValuationModelRef[];
+  enabledInEngine: boolean;
+  modeNoteAr?: string;
+}
+
+export interface DownloadableParameterTemplateRow {
+  Key: string;
+  Value: number;
+  Description: string;
+  Scope: 'global' | 'company';
+  Ticker: string;
+  Unit: string;
+  AsOfDate: string;
+  Source: string;
+  RfMethodology?: string;
+  Currency?: string;
+  ForecastHorizonYears?: number | '';
+}
+
+export const PARAMETER_REGISTRY: ParameterRegistryDefinition[] = [
+  {
+    key: 'TaxRate',
+    nameAr: 'معدل الضريبة الهامشي (TaxRate)',
+    descriptionAr: 'معدل الضريبة المستخدم في الدرع الضريبي وتكلفة الدين بعد الضريبة (كسر عشري مثل 0.225)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'tax_rf',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['wacc', 'dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Rf_Egypt_10Y',
+    nameAr: 'عائد سندات مصر 10 سنوات (Rf_Egypt_10Y)',
+    descriptionAr:
+      'العائد الخالي من المخاطر للجنيه المصري (كسر عشري). يُنصح بتوثيق منهجية Rf صراحةً (عائد سيادي sovereign_yield، خالٍ من التعثر default_free، أو تركيبي synthetic) لتفادي الازدواج مع CRP_Egypt.',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'tax_rf',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['ke', 'wacc', 'dcf', 'ddm', 'rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'ERP_Developed',
+    nameAr: 'علاوة مخاطر السوق المرجعية (ERP_Developed)',
+    descriptionAr: 'علاوة مخاطر الأسواق المتطورة المرجعية (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'risk_premiums',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['ke', 'wacc', 'dcf', 'ddm', 'rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'CRP_Egypt',
+    nameAr: 'علاوة مخاطر الدولة لمصر (CRP_Egypt)',
+    descriptionAr: 'علاوة مخاطر الدولة لمصر عند تفعيل الأنماط المتضمنة لـ CRP (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'risk_premiums',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['ke', 'wacc', 'dcf', 'ddm', 'rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Beta_Default',
+    nameAr: 'سياسة بيتا الافتراضية عند تأكيد غياب السجل (Beta_Default)',
+    descriptionAr:
+      'قيمة السياسة المرجعية المسموحة حصراً بعد تأكيد الخادم عدم وجود سجل في beta_assumptions (الافتراضي المعتمد: 1.00). لا تُستخدم عند أخطاء الاتصال أو الصلاحيات.',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['global'],
+    category: 'beta',
+    min: 0,
+    max: 5,
+    usedByModels: ['beta', 'ke', 'wacc'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Terminal_Growth',
+    nameAr: 'النمو النهائي المستدام (Terminal_Growth)',
+    descriptionAr: 'معدل النمو الدائم لمرحلة الاستقرار في DCF عند اختيار طريقة النمو الدائم (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'terminal',
+    isPercentage: true,
+    min: -0.5,
+    max: 0.99,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Exit_Multiple',
+    nameAr: 'مضاعف الخروج النهائي (Exit_Multiple)',
+    descriptionAr:
+      'مضاعف EV/EBITDA يُفعَّل صراحةً فقط عند اختيار طريقة القيمة النهائية بالمضاعف مع توفر Projected_Terminal_EBITDA أو معدل نمو EBITDA صريح (EBITDA_Growth_Rate / EBITDA_Growth_Y1..YN)؛ لا يُربط تلقائياً بنمو FCFF.',
+    valueType: 'multiple',
+    unit: 'multiple',
+    allowedScopes: ['global', 'company'],
+    category: 'terminal',
+    min: 0.01,
+    max: 200,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Projected_Terminal_EBITDA',
+    nameAr: 'EBITDA النهائية المتوقعة صراحةً (Projected_Terminal_EBITDA)',
+    descriptionAr:
+      'قيمة EBITDA المتوقعة في نهاية فترة التوقع لشركة محددة فقط (scope=company، بالقيمة الأساسية وبعملة وعدد سنوات توقع مطابقين). لا يُسمح بحفظها كمعامل عام.',
+    valueType: 'number',
+    unit: 'base',
+    allowedScopes: ['company'],
+    category: 'terminal',
+    min: 0.01,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'EBITDA_Growth_Rate',
+    nameAr: 'معدل نمو EBITDA السنوي لإسقاط القيمة النهائية (EBITDA_Growth_Rate)',
+    descriptionAr:
+      'معدل النمو السنوي الصريح لـ EBITDA خلال سنوات التوقع عند استخدام طريقة Exit_Multiple (كسر عشري؛ مستقل تماماً عن Growth_Y* الخاص بـ FCFF).',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['company', 'global'],
+    category: 'terminal',
+    isPercentage: true,
+    min: -0.99,
+    max: 5,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Forecast_Years',
+    nameAr: 'عدد سنوات التوقع في DCF (Forecast_Years)',
+    descriptionAr: 'عدد صحيح ديناميكي لسنوات إسقاط FCFF (1 إلى 20؛ يتطلب Growth_Y1..Growth_YN بالكامل).',
+    valueType: 'integer',
+    unit: 'years',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    min: 1,
+    max: 20,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Cost_of_Debt',
+    nameAr: 'تكلفة الدين قبل الضريبة (Cost_of_Debt)',
+    descriptionAr: 'تكلفة التمويل والاقتراض قبل الضريبة (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'tax_rf',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['wacc', 'dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Growth_Y1',
+    nameAr: 'نمو تدفق FCFF المتوقع — السنة 1',
+    descriptionAr: 'معدل نمو FCFF المتوقع في السنة 1 (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: -0.99,
+    max: 5,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Growth_Y2',
+    nameAr: 'نمو تدفق FCFF المتوقع — السنة 2',
+    descriptionAr: 'معدل نمو FCFF المتوقع في السنة 2 (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: -0.99,
+    max: 5,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Growth_Y3',
+    nameAr: 'نمو تدفق FCFF المتوقع — السنة 3',
+    descriptionAr: 'معدل نمو FCFF المتوقع في السنة 3 (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: -0.99,
+    max: 5,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Growth_Y4',
+    nameAr: 'نمو تدفق FCFF المتوقع — السنة 4',
+    descriptionAr: 'معدل نمو FCFF المتوقع في السنة 4 (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: -0.99,
+    max: 5,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Growth_Y5',
+    nameAr: 'نمو تدفق FCFF المتوقع — السنة 5',
+    descriptionAr: 'معدل نمو FCFF المتوقع في السنة 5 (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: -0.99,
+    max: 5,
+    usedByModels: ['dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'WACC_Mode',
+    nameAr: 'نمط حساب WACC (1=محلي مع CRP, 2=محلي بدون CRP, 3=USD)',
+    descriptionAr:
+      'نمط تكلفة رأس المال في DCF: 1=مصري مع CRP، 2=مصري بدون CRP، 3=دولاري (مستبعد في DCF بالجنيه). انتبه: ترتيب 2 و3 يختلف عن r_Mode.',
+    valueType: 'mode',
+    unit: 'code',
+    allowedScopes: ['global', 'company'],
+    category: 'wacc_modes',
+    allowedValues: [1, 2, 3],
+    usedByModels: ['wacc', 'dcf'],
+    enabledInEngine: true,
+    modeNoteAr: '1=EG+CRP | 2=EG بدون CRP | 3=USD (معكوس 2 و3 مقارنة بـ r_Mode)',
+  },
+  {
+    key: 'DDM_Growth',
+    nameAr: 'معدل نمو التوزيعات (DDM_Growth)',
+    descriptionAr: 'معدل النمو السنوي في نموذج خصم التوزيعات DDM (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: -0.5,
+    max: 0.99,
+    usedByModels: ['ddm'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'r_Mode',
+    nameAr: 'نمط معدل الخصم r (1=محلي مع CRP, 2=USD, 3=محلي بدون CRP)',
+    descriptionAr:
+      'نمط حساب تكلفة حقوق الملكية Ke: 1=محلي مع CRP، 2=دولاري + CRP، 3=محلي بدون CRP. انتبه: ترتيب 2 و3 يختلف عن WACC_Mode.',
+    valueType: 'mode',
+    unit: 'code',
+    allowedScopes: ['global', 'company'],
+    category: 'wacc_modes',
+    allowedValues: [1, 2, 3],
+    usedByModels: ['ke', 'ddm', 'rim'],
+    enabledInEngine: true,
+    modeNoteAr: '1=EG+CRP | 2=USD | 3=EG بدون CRP (معكوس 2 و3 مقارنة بـ WACC_Mode)',
+  },
+  {
+    key: 'Weight_DCF',
+    nameAr: 'وزن نموذج DCF',
+    descriptionAr: 'الوزن النسبي لنموذج التدفقات المخصومة في القيمة المرجحة (0..1)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['composite', 'dcf'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Weight_DDM',
+    nameAr: 'وزن نموذج DDM',
+    descriptionAr: 'الوزن النسبي لنموذج خصم التوزيعات في القيمة المرجحة (0..1)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['composite', 'ddm'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Weight_Relative',
+    nameAr: 'وزن التقييم النسبي (Weight_Relative)',
+    descriptionAr: 'الوزن النسبي للتقييم النسبي بالمضاعفات في القيمة المرجحة (0..1)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['composite', 'relative'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Weight_Graham',
+    nameAr: 'وزن صيغة جراهام (Weight_Graham)',
+    descriptionAr: 'الوزن النسبي لصيغة جراهام في القيمة المرجحة (0..1)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['composite', 'graham'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Weight_RIM',
+    nameAr: 'وزن نموذج الدخل المتبقي (Weight_RIM)',
+    descriptionAr: 'الوزن النسبي لنموذج الدخل المتبقي في القيمة المرجحة (0..1)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['composite', 'rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Rf_USD_10Y',
+    nameAr: 'عائد سندات الخزانة الأمريكية 10 سنوات (Rf_USD_10Y)',
+    descriptionAr: 'معدل العائد الخالي من المخاطر بالدولار الأمريكي عند استخدام النمط الدولاري (كسر عشري)',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global'],
+    category: 'macro_inflation',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['ke', 'wacc'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'US_Default_Spread',
+    nameAr: 'هامش تعثر الولايات المتحدة (US_Default_Spread)',
+    descriptionAr: 'معامل مرجعي محفوظ للشفافية والتقارير الكلية؛ غير مفعّل حسابياً في معادلات Ke/WACC الحالية.',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global'],
+    category: 'macro_inflation',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: [],
+    enabledInEngine: false,
+  },
+  {
+    key: 'Sovereign_Default_Spread',
+    nameAr: 'هامش التعثر السيادي الموثق لمصر (Sovereign_Default_Spread)',
+    descriptionAr:
+      'معامل توثيقي اختياري يوضح هامش التعثر السيادي المرتبط بعائد السندات عند تعديل Rf_Egypt_10Y؛ محفوظ للشفافية فقط ولا يُشتق من CRP_Egypt ولا يدخل تلقائياً في المعادلات.',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global'],
+    category: 'macro_inflation',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: [],
+    enabledInEngine: false,
+  },
+  {
+    key: 'Inflation_Egypt_LT',
+    nameAr: 'التضخم طويل الأجل — مصر (Inflation_Egypt_LT)',
+    descriptionAr: 'معامل مرجعي محفوظ دون ربط حسابي بمعدلات الخصم أو التدفقات؛ غير مفعّل حسابياً.',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global'],
+    category: 'macro_inflation',
+    isPercentage: true,
+    min: -0.5,
+    max: 2,
+    usedByModels: [],
+    enabledInEngine: false,
+  },
+  {
+    key: 'Inflation_US_LT',
+    nameAr: 'التضخم طويل الأجل — أمريكا (Inflation_US_LT)',
+    descriptionAr: 'معامل مرجعي محفوظ دون ربط حسابي بمعدلات الخصم أو التدفقات؛ غير مفعّل حسابياً.',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global'],
+    category: 'macro_inflation',
+    isPercentage: true,
+    min: -0.5,
+    max: 1,
+    usedByModels: [],
+    enabledInEngine: false,
+  },
+  {
+    key: 'Beta_Raw_Weight',
+    nameAr: 'وزن بيتا التاريخية في تعديل بلوم (Beta_Raw_Weight)',
+    descriptionAr: 'وزن Beta الخام في معادلة Blume: betaAdj = w * betaRaw + (1 - w) * anchor (مثال: 0.67 أو 1)',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['global', 'company'],
+    category: 'beta',
+    min: 0,
+    max: 1,
+    usedByModels: ['beta', 'ke', 'wacc'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Beta_Anchor',
+    nameAr: 'نقطة ارتكاز بيتا (Beta_Anchor)',
+    descriptionAr: 'نقطة ارتكاز تعديل بلوم لبيتا السوقية (مثال: 1.00)',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['global', 'company'],
+    category: 'beta',
+    min: 0,
+    max: 3,
+    usedByModels: ['beta', 'ke', 'wacc'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Country_Risk_Lambda',
+    nameAr: 'معامل التعرض لمخاطر الدولة (Country_Risk_Lambda)',
+    descriptionAr: 'معامل λ لتعرض السهم لمخاطر الدولة (CRP) في أنماط الخصم المتضمنة لمخاطر الدولة',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['global', 'company'],
+    category: 'risk_premiums',
+    min: 0,
+    max: 5,
+    usedByModels: ['ke', 'wacc'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'RIM_Retention',
+    nameAr: 'نسبة احتجاز الأرباح في RIM (RIM_Retention)',
+    descriptionAr: 'نسبة الأرباح المحتجزة في نموذج الدخل المتبقي (كسر عشري 0..1؛ يعطّل RIM عند غيابها).',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['global', 'company'],
+    category: 'growth',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'RIM_Expected_ROE',
+    nameAr: 'العائد المستقبلي المتوقع على حقوق المساهمين في RIM (RIM_Expected_ROE)',
+    descriptionAr:
+      'العائد المتوقع على حقوق المساهمين خلال سنوات التوقع الخمس في RIM (كسر عشري)؛ اختياري ومستقل تماماً عن ROE التاريخي.',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['company', 'global'],
+    category: 'growth',
+    isPercentage: true,
+    min: -2,
+    max: 5,
+    usedByModels: ['rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'RIM_Terminal_Method',
+    nameAr: 'طريقة القيمة النهائية في RIM (RIM_Terminal_Method)',
+    descriptionAr:
+      'طريقة حساب القيمة النهائية للدخل المتبقي بعد السنة الخامسة: 1=بقاء الدخل المتبقي دائماً، 2=تلاشي ROE تدريجياً نحو Ke، 3=استمرار ROE ونمو القيمة الدفترية.',
+    valueType: 'mode',
+    unit: 'code',
+    allowedScopes: ['company', 'global'],
+    category: 'terminal',
+    min: 1,
+    max: 3,
+    allowedValues: [1, 2, 3],
+    usedByModels: ['rim'],
+    enabledInEngine: true,
+    modeNoteAr:
+      '1=بقاء RI ثابتاً (RI_6/Ke حيث RI_6=(ROE_proj-Ke)×B_5) | 2=تلاشي ROE نحو Ke أو RIM_Terminal_ROE عبر RIM_Fade_Years | 3=نمو دائم g_B=ROE_term×b_term (يشترط g_B < Ke)',
+  },
+  {
+    key: 'RIM_Terminal_ROE',
+    nameAr: 'العائد النهائي المستدام على حقوق المساهمين (RIM_Terminal_ROE)',
+    descriptionAr:
+      'العائد المستهدف على حقوق المساهمين في نهاية مرحلة التلاشي أو في المرحلة الدائمة عند اختيار نمط 2 أو 3 في RIM (كسر عشري).',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['company', 'global'],
+    category: 'terminal',
+    isPercentage: true,
+    min: -2,
+    max: 5,
+    usedByModels: ['rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'RIM_Terminal_Retention',
+    nameAr: 'نسبة الاحتجاز النهائية في RIM (RIM_Terminal_Retention)',
+    descriptionAr:
+      'نسبة احتجاز الأرباح بعد السنة الخامسة في RIM لحساب g_B = RIM_Terminal_ROE * RIM_Terminal_Retention (كسر عشري 0..1).',
+    valueType: 'pct',
+    unit: 'decimal',
+    allowedScopes: ['company', 'global'],
+    category: 'terminal',
+    isPercentage: true,
+    min: 0,
+    max: 1,
+    usedByModels: ['rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'RIM_Fade_Years',
+    nameAr: 'عدد سنوات تلاشي العائد في RIM (RIM_Fade_Years)',
+    descriptionAr:
+      'عدد سنوات تلاشي ROE نحو Ke أو RIM_Terminal_ROE بعد السنة الخامسة عند اختيار RIM_Terminal_Method = 2 (عدد صحيح 1..20).',
+    valueType: 'integer',
+    unit: 'years',
+    allowedScopes: ['company', 'global'],
+    category: 'terminal',
+    min: 1,
+    max: 20,
+    usedByModels: ['rim'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Relative_PE_Weight',
+    nameAr: 'وزن دمج قيمة P/E في التقييم النسبي (Relative_PE_Weight)',
+    descriptionAr:
+      'وزن رقمي لدمج القيمة الضمنية المستخرجة من مضاعف P/E مع القيمة الضمنية من P/B داخل نموذج التقييم النسبي؛ ليس مضاعف الربحية نفسه ولا وزن النموذج في القيمة العادلة المركبة. يُقبل في تخصيص الشركة (company_assumptions) أو المتغيرات الكلية (macro_params)، ويُطبَّع تلقائياً بالقسمة على مجموع الوزنين دون اشتراط أن يساوي المجموع 1 أو 100.',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    min: 0,
+    max: 100,
+    usedByModels: ['relative'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Relative_PB_Weight',
+    nameAr: 'وزن دمج قيمة P/B في التقييم النسبي (Relative_PB_Weight)',
+    descriptionAr:
+      'وزن رقمي لدمج القيمة الضمنية المستخرجة من مضاعف P/B مع القيمة الضمنية من P/E داخل نموذج التقييم النسبي؛ ليس مضاعف القيمة الدفترية نفسه ولا وزن النموذج في القيمة العادلة المركبة. يُقبل في تخصيص الشركة (company_assumptions) أو المتغيرات الكلية (macro_params)، ويُطبَّع تلقائياً بالقسمة على مجموع الوزنين دون اشتراط أن يساوي المجموع 1 أو 100.',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['global', 'company'],
+    category: 'weights',
+    min: 0,
+    max: 100,
+    usedByModels: ['relative'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Target_PE',
+    nameAr: 'مضاعف الربحية المستهدف للشركة (Target_PE)',
+    descriptionAr:
+      'تخصيص مضاعف الربحية المستهدف للشركة في نموذج التقييم النسبي (scope=company في company_assumptions؛ يقارن مع مضاعف القطاع في sectorPE حسب أولوية الافتراضات).',
+    valueType: 'multiple',
+    unit: 'multiple',
+    allowedScopes: ['company'],
+    category: 'multiples',
+    min: 0.1,
+    max: 500,
+    usedByModels: ['relative'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Target_PB',
+    nameAr: 'مضاعف القيمة الدفترية المستهدف للشركة (Target_PB)',
+    descriptionAr:
+      'تخصيص مضاعف القيمة الدفترية المستهدف للشركة في نموذج التقييم النسبي (scope=company في company_assumptions).',
+    valueType: 'multiple',
+    unit: 'multiple',
+    allowedScopes: ['company'],
+    category: 'multiples',
+    min: 0.05,
+    max: 100,
+    usedByModels: ['relative'],
+    enabledInEngine: true,
+  },
+  {
+    key: 'Beta_Analytical',
+    nameAr: 'تقدير بيتا التحليلي الاختياري للشركة (Beta_Analytical)',
+    descriptionAr:
+      'تقدير تحليلي اختياري لبيتا محفوظ في company_assumptions كمسار مستقل تماماً عن بيتا التاريخية المعتمدة في beta_assumptions؛ لا يختلط ببيتا التاريخية ولا ببيتا المرجعية 1.',
+    valueType: 'number',
+    unit: 'ratio',
+    allowedScopes: ['company'],
+    category: 'beta',
+    min: -10,
+    max: 10,
+    usedByModels: ['beta', 'ke', 'wacc'],
+    enabledInEngine: true,
+  },
+];
+
+export function getParameterDefinition(key: string): ParameterRegistryDefinition | null {
+  const exact = PARAMETER_REGISTRY.find((p) => p.key === key);
+  if (exact) return exact;
+
+  const dynGrowth = /^Growth_Y([1-9]|1[0-9]|20)$/.exec(key);
+  if (dynGrowth) {
+    const yr = Number(dynGrowth[1]);
+    return {
+      key,
+      nameAr: `نمو تدفق FCFF المتوقع — السنة ${yr}`,
+      descriptionAr: `معدل نمو تدفق FCFF المتوقع في السنة ${yr} عند تفعيل Forecast_Years >= ${yr} (كسر عشري)`,
+      valueType: 'pct',
+      unit: 'decimal',
+      allowedScopes: ['global', 'company'],
+      category: 'growth',
+      isPercentage: true,
+      min: -0.99,
+      max: 5,
+      usedByModels: ['dcf'],
+      enabledInEngine: true,
+    };
+  }
+  const dynEbitdaGrowth = /^EBITDA_Growth_Y([1-9]|1[0-9]|20)$/.exec(key);
+  if (dynEbitdaGrowth) {
+    const yr = Number(dynEbitdaGrowth[1]);
+    return {
+      key,
+      nameAr: `نمو EBITDA المتوقع — السنة ${yr}`,
+      descriptionAr: `معدل نمو EBITDA الصريح في السنة ${yr} عند تفعيل طريقة Exit_Multiple وForecast_Years >= ${yr} (كسر عشري).`,
+      valueType: 'pct',
+      unit: 'decimal',
+      allowedScopes: ['global', 'company'],
+      category: 'terminal',
+      isPercentage: true,
+      min: -0.99,
+      max: 5,
+      usedByModels: ['dcf'],
+      enabledInEngine: true,
+    };
+  }
+  return null;
+}
+
+/**
+ * صفوف القيم الـ 29 المزوّدة من المستخدم لملف قالب All_Parameters.xlsx للتنزيل فقط.
+ * لا تُزرع تلقائياً في Firestore ولا تُستخدم في التشغيل عند خلو قاعدة البيانات.
+ */
+export const DOWNLOADABLE_ALL_PARAMETERS_TEMPLATE_ROWS: DownloadableParameterTemplateRow[] = [
+  { Key: 'TaxRate', Value: 0.225, Description: 'ضريبة الشركات المصرية (22.5%)', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Rf_Egypt_10Y', Value: 0.251, Description: 'عائد سندات مصر 10 سنوات بالعملة المحلية', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'ERP_Developed', Value: 0.0421, Description: 'علاوة مخاطر السوق المرجعية المتطورة', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'CRP_Egypt', Value: 0.076, Description: 'علاوة مخاطر الدولة لمصر', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Beta_Default', Value: 1.0, Description: 'بيتا الافتراضية عند تأكيد غياب السجل في beta_assumptions', Scope: 'global', Ticker: '', Unit: 'ratio', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Terminal_Growth', Value: 0.05, Description: 'معدل النمو الدائم النهائي المستدام في DCF', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Exit_Multiple', Value: 5.5, Description: 'مضاعف الخروج النهائي EV/EBITDA (يُفعّل صراحةً فقط)', Scope: 'global', Ticker: '', Unit: 'multiple', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Forecast_Years', Value: 5, Description: 'عدد سنوات التوقع في نموذج DCF', Scope: 'global', Ticker: '', Unit: 'years', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Cost_of_Debt', Value: 0.15, Description: 'تكلفة الدين قبل الضريبة', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Growth_Y1', Value: 0.5, Description: 'معدل نمو تدفق FCFF المتوقع — السنة 1', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Growth_Y2', Value: 0.4, Description: 'معدل نمو تدفق FCFF المتوقع — السنة 2', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Growth_Y3', Value: 0.3, Description: 'معدل نمو تدفق FCFF المتوقع — السنة 3', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Growth_Y4', Value: 0.2, Description: 'معدل نمو تدفق FCFF المتوقع — السنة 4', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Growth_Y5', Value: 0.15, Description: 'معدل نمو تدفق FCFF المتوقع — السنة 5', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'WACC_Mode', Value: 1, Description: 'نمط WACC: 1=محلي+CRP، 2=محلي بدون CRP، 3=USD', Scope: 'global', Ticker: '', Unit: 'code', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'DDM_Growth', Value: 0.1, Description: 'معدل نمو التوزيعات في نموذج DDM', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'r_Mode', Value: 1, Description: 'نمط Ke: 1=محلي+CRP، 2=USD+CRP، 3=محلي بدون CRP', Scope: 'global', Ticker: '', Unit: 'code', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Weight_DCF', Value: 0.3, Description: 'وزن نموذج DCF', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Weight_DDM', Value: 0.15, Description: 'وزن نموذج DDM', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Weight_Relative', Value: 0.25, Description: 'وزن التقييم النسبي بالمضاعفات', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Weight_Graham', Value: 0.15, Description: 'وزن صيغة جراهام', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Weight_RIM', Value: 0.15, Description: 'وزن نموذج الدخل المتبقي RIM', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Rf_USD_10Y', Value: 0.049, Description: 'عائد الخزانة الأمريكية 10 سنوات', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'US_Default_Spread', Value: 0.0022, Description: 'هامش تعثر أمريكا (غير مفعّل حسابياً)', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Inflation_Egypt_LT', Value: 0.0778, Description: 'التضخم طويل الأجل مصر (غير مفعّل حسابياً)', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Inflation_US_LT', Value: 0.0224, Description: 'التضخم طويل الأجل أمريكا (غير مفعّل حسابياً)', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Beta_Raw_Weight', Value: 0.67, Description: 'وزن بيتا التاريخية في تعديل بلوم', Scope: 'global', Ticker: '', Unit: 'ratio', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Beta_Anchor', Value: 1.0, Description: 'نقطة ارتكاز بيتا في تعديل بلوم', Scope: 'global', Ticker: '', Unit: 'ratio', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'Country_Risk_Lambda', Value: 1.0, Description: 'معامل التعرض لمخاطر الدولة (Lambda)', Scope: 'global', Ticker: '', Unit: 'ratio', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'RIM_Terminal_Method', Value: 1, Description: 'طريقة القيمة النهائية في RIM: 1=بقاء RI، 2=تلاشي ROE، 3=نمو القيمة الدفترية g_B', Scope: 'global', Ticker: '', Unit: 'code', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'RIM_Fade_Years', Value: 5, Description: 'عدد سنوات تلاشي ROE في RIM عند النمط 2', Scope: 'global', Ticker: '', Unit: 'years', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+  { Key: 'RIM_Terminal_Retention', Value: 0.25, Description: 'نسبة الاحتجاز النهائية بعد السنة الخامسة في RIM عند النمط 3', Scope: 'global', Ticker: '', Unit: 'decimal', AsOfDate: '', Source: 'مقدم من المستخدم (قالب)' },
+];

@@ -1,0 +1,172 @@
+{
+  "entities": {
+    "Company": {
+      "title": "Company",
+      "description": "بيانات الشركات المقيدة في البورصة المصرية",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ticker": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "sector": { "type": "string" },
+        "marketPrice": { "type": "number" },
+        "sharesOutstanding": { "type": "number" },
+        "beta": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "ticker", "nameAr", "sector", "marketPrice"]
+    },
+    "QuarterlyFinancial": {
+      "title": "QuarterlyFinancial",
+      "description": "القوائم المالية الربع سنوية وحسابات TTM الموحدة",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyId": { "type": "string" },
+        "year": { "type": "number" },
+        "quarter": { "type": "string" },
+        "revenueYTD": { "type": "number" },
+        "netProfitYTD": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "companyId", "year", "quarter"]
+    },
+    "QuarterlyFinancialRecord": {
+      "title": "QuarterlyFinancialRecord",
+      "description": "سجلات القوائم المالية الشاملة بالـ 26 عموداً المحاسبي المعتمد",
+      "type": "object",
+      "properties": {
+        "ticker": { "type": "string" },
+        "year": { "type": "number" },
+        "quarter": { "type": "string" },
+        "revenueYTD": { "type": "number" },
+        "netIncomeYTD": { "type": "number" },
+        "equity": { "type": "number" },
+        "totalAssets": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["ticker", "year", "quarter"]
+    },
+    "DailyTradingRecord": {
+      "title": "DailyTradingRecord",
+      "description": "سجلات التداول اليومي الديناميكية شاملة جميع أعمدة الملف الأصلي",
+      "type": "object",
+      "properties": {
+        "ticker": { "type": "string" },
+        "tradeDate": { "type": "string" },
+        "lastPrice": { "type": "number" },
+        "closePrice": { "type": "number" },
+        "volume": { "type": "number" },
+        "turnoverValue": { "type": "number" },
+        "netLiquidity": { "type": "number" },
+        "peRatio": { "type": "number" },
+        "pbRatio": { "type": "number" },
+        "schemaId": { "type": "string" },
+        "rawCells": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["ticker", "tradeDate"]
+    },
+    "DailyTradingSchemaRecord": {
+      "title": "DailyTradingSchemaRecord",
+      "description": "مخطط أعمدة ملفات التداول اليومي المستوردة بمعرّفات موضعية مستقرة",
+      "type": "object",
+      "properties": {
+        "schemaId": { "type": "string" },
+        "tradeDate": { "type": "string" },
+        "sourceFile": { "type": "string" },
+        "sourceSheet": { "type": "string" },
+        "totalColumns": { "type": "number" },
+        "columns": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["schemaId", "totalColumns", "columns"]
+    },
+    "MacroParameter": {
+      "title": "MacroParameter",
+      "description": "المعاملات الكلية والمتغيرات الاقتصادية الـ 29",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "value": { "type": "number" },
+        "category": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["key", "nameAr", "value", "category"]
+    },
+    "DividendRecord": {
+      "title": "DividendRecord",
+      "description": "سجلات التوزيعات النقدية الفعلية الموثقة من DPS_Actual.xlsx",
+      "type": "object",
+      "properties": {
+        "ticker": { "type": "string" },
+        "fiscalYear": { "type": "number" },
+        "cashDps": { "type": "number" },
+        "asOfDate": { "type": "string" },
+        "distributionId": { "type": "string" },
+        "recordType": { "type": "string", "enum": ["regular", "special"] },
+        "approvalStatus": { "type": "string", "enum": ["proposed", "approved", "paid", "cancelled"] },
+        "distributionSemantics": { "type": "string", "enum": ["annual_total", "standalone_event", "installment"] },
+        "currency": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["ticker", "fiscalYear", "cashDps", "asOfDate", "distributionId"]
+    },
+    "AppUser": {
+      "title": "AppUser",
+      "description": "ملف المستخدم وحسابات الصلاحيات والاشتراك",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "data_entry", "assistant", "subscriber"] },
+        "tier": { "type": "string", "enum": ["free", "bronze", "silver", "gold", "institutional"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/companies/{companyId}": {
+      "schema": "Company",
+      "description": "بيانات الشركات المقيدة"
+    },
+    "/financials/{financialId}": {
+      "schema": "QuarterlyFinancial",
+      "description": "القوائم المالية الربع سنوية الموحدة"
+    },
+    "/quarterly_financial_records/{recordId}": {
+      "schema": "QuarterlyFinancialRecord",
+      "description": "سجلات القوائم المالية الـ 26 عموداً"
+    },
+    "/daily_trading_records/{recordId}": {
+      "schema": "DailyTradingRecord",
+      "description": "سجلات التداول اليومي الديناميكية الكاملة"
+    },
+    "/daily_trading_schemas/{schemaId}": {
+      "schema": "DailyTradingSchemaRecord",
+      "description": "مخططات الأعمدة المشتركة لملفات التداول اليومي"
+    },
+    "/macro_params/{paramKey}": {
+      "schema": "MacroParameter",
+      "description": "المعاملات الكلية والمتغيرات الـ 29"
+    },
+    "/dividend_records/{dividendId}": {
+      "schema": "DividendRecord",
+      "description": "سجلات التوزيعات النقدية الفعلية"
+    },
+    "/dividend_year_statuses/{statusId}": {
+      "schema": "DividendRecord",
+      "description": "حالة اكتمال التوزيعات السنوية الموثقة لكل سهم وسنة مالية"
+    },
+    "/users/{userId}": {
+      "schema": "AppUser",
+      "description": "ملفات المستخدمين والأدوار والاشتراكات"
+    }
+  }
+}
